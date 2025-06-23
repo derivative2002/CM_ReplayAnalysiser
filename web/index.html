@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StarCraft Co-op Overlay (v2.47)</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="main-window">
+        <!-- 标签页容器 -->
+        <div class="tab-widget">
+            <!-- 标签页导航栏 -->
+            <div class="tab-bar">
+                <div class="tab active" data-tab="settings">Settings</div>
+                <div class="tab" data-tab="games">Games</div>
+                <div class="tab" data-tab="players">Players</div>
+                <div class="tab" data-tab="weeklies">Weeklies</div>
+                <div class="tab" data-tab="mutator-stats">突变因子统计</div>
+                <div class="tab" data-tab="custom-maps">自定义地图</div>
+                <div class="tab" data-tab="statistics">Statistics</div>
+                <div class="tab" data-tab="links">Links</div>
+            </div>
+
+            <!-- 标签页内容区域 -->
+            <div class="tab-content">
+                <!-- Settings 标签页 -->
+                <div class="tab-pane active" id="settings">
+                    <div class="settings-grid">
+                        <div class="settings-left">
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="start-with-windows">
+                                <label for="start-with-windows">Start with Windows</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="start-minimized">
+                                <label for="start-minimized">Start minimized</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="minimize-to-tray">
+                                <label for="minimize-to-tray">Minimize to tray</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="enable-logging">
+                                <label for="enable-logging">Enable logging</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="show-session">
+                                <label for="show-session">Show session stats</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="show-player-winrates">
+                                <label for="show-player-winrates">Show player winrates and notes</label>
+                            </div>
+                        </div>
+                        <div class="settings-right">
+                            <div class="spinbox-item">
+                                <input type="number" id="duration" value="10" min="0" max="999">
+                                <label for="duration">Duration</label>
+                            </div>
+                            <div class="spinbox-item">
+                                <input type="number" id="monitor" value="1" min="1" max="10">
+                                <label for="monitor">Monitor</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="show-charts">
+                                <label for="show-charts">Show charts</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="dark-theme" checked>
+                                <label for="dark-theme">Dark theme</label>
+                            </div>
+                            <div class="checkbox-item">
+                                <input type="checkbox" id="fast-expand">
+                                <label for="fast-expand">Fast expand hints</label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 其他设置区域 -->
+                    <div class="settings-bottom">
+                        <div class="settings-section">
+                            <h4>Account folder</h4>
+                            <div class="folder-selector">
+                                <input type="text" id="account-folder" readonly>
+                                <button class="browse-btn">...</button>
+                            </div>
+                        </div>
+                        
+                        <div class="settings-section">
+                            <h4>Screenshot folder</h4>
+                            <div class="folder-selector">
+                                <input type="text" id="screenshot-folder" readonly>
+                                <button class="browse-btn">...</button>
+                            </div>
+                        </div>
+                        
+                        <div class="settings-section">
+                            <h4>Hotkeys</h4>
+                            <div class="hotkey-group">
+                                <label>Show/Hide overlay:</label>
+                                <input type="text" id="hotkey-overlay" value="F2" readonly>
+                                <button class="hotkey-set-btn">Set</button>
+                            </div>
+                        </div>
+                        
+                        <div class="settings-actions">
+                            <button class="action-button">Manual analysis</button>
+                            <button class="action-button">Reset settings</button>
+                            <button class="action-button">Export settings</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Games 标签页 -->
+                <div class="tab-pane" id="games">
+                    <div class="games-header">
+                        <div class="header-labels">
+                            <div class="header-map">Map</div>
+                            <div class="header-result">Result</div>
+                            <div class="header-player1">Player 1</div>
+                            <div class="header-player2">Player 2</div>
+                            <div class="header-enemy">Enemy</div>
+                            <div class="header-length">Length</div>
+                            <div class="header-difficulty">Difficulty</div>
+                            <div class="header-date">Time</div>
+                        </div>
+                        <div class="search-container">
+                            <input type="text" id="games-search" placeholder="Search">
+                            <button class="search-btn">🔍</button>
+                        </div>
+                        <div class="header-line"></div>
+                    </div>
+                    <div class="games-scroll-area">
+                        <div class="games-content" id="games-list">
+                            <div class="waiting-message">
+                                <b>Please wait. This can take few minutes the first time.<br>Analyzing your replays.</b>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Players 标签页 -->
+                <div class="tab-pane" id="players">
+                    <div class="players-content">
+                        <div class="player-stats-summary">
+                            <div class="stat-item">
+                                <div class="stat-label">Total Games:</div>
+                                <div class="stat-value" id="total-games">0</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-label">Win Rate:</div>
+                                <div class="stat-value" id="win-rate">0%</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-label">Average APM:</div>
+                                <div class="stat-value" id="avg-apm">0</div>
+                            </div>
+                        </div>
+                        <div class="players-scroll-area">
+                            <div id="players-list"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Weeklies 标签页 -->
+                <div class="tab-pane" id="weeklies">
+                    <div class="weekly-content">
+                        <div class="weekly-header">
+                            <h3>Weekly Mutation</h3>
+                        </div>
+                        <div class="weekly-info">
+                            <div class="weekly-map">Map: <span id="weekly-map">Loading...</span></div>
+                            <div class="weekly-mutators">Mutators: <span id="weekly-mutators">Loading...</span></div>
+                        </div>
+                        <div class="weekly-stats">
+                            <div class="weekly-attempts">Attempts: <span id="weekly-attempts">0</span></div>
+                            <div class="weekly-wins">Wins: <span id="weekly-wins">0</span></div>
+                            <div class="weekly-winrate">Win Rate: <span id="weekly-winrate">0%</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 突变因子统计 标签页 -->
+                <div class="tab-pane" id="mutator-stats">
+                    <div class="mutator-stats-content">
+                        <h3>Mutator Statistics</h3>
+                        <div class="mutator-list" id="mutator-list"></div>
+                    </div>
+                </div>
+
+                <!-- 自定义地图 标签页 -->
+                <div class="tab-pane" id="custom-maps">
+                    <div class="custom-maps-content">
+                        <h3>Custom Maps</h3>
+                        <div class="custom-maps-list" id="custom-maps-list"></div>
+                    </div>
+                </div>
+
+                <!-- Statistics 标签页 -->
+                <div class="tab-pane" id="statistics">
+                    <div class="statistics-content">
+                        <div class="stats-filters">
+                            <select id="difficulty-filter">
+                                <option value="">All Difficulties</option>
+                                <option value="1">Casual</option>
+                                <option value="2">Normal</option>
+                                <option value="3">Hard</option>
+                                <option value="4">Brutal</option>
+                                <option value="5">Brutal+</option>
+                            </select>
+                            <select id="region-filter">
+                                <option value="">All Regions</option>
+                                <option value="us">Americas</option>
+                                <option value="eu">Europe</option>
+                                <option value="kr">Asia</option>
+                            </select>
+                            <input type="date" id="from-date">
+                            <input type="date" id="to-date">
+                        </div>
+                        <div class="charts-container">
+                            <div class="chart-box">
+                                <canvas id="difficulty-chart"></canvas>
+                            </div>
+                            <div class="chart-box">
+                                <canvas id="commander-chart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Links 标签页 -->
+                <div class="tab-pane" id="links">
+                    <div class="links-content">
+                        <div class="links-grid">
+                            <a href="#" class="link-item">
+                                <img src="../src/github.png" alt="GitHub">
+                                <span>GitHub Repository</span>
+                            </a>
+                            <a href="#" class="link-item">
+                                <img src="../src/discord.png" alt="Discord">
+                                <span>Discord Server</span>
+                            </a>
+                            <a href="#" class="link-item">
+                                <img src="../src/reddit.png" alt="Reddit">
+                                <span>Reddit Community</span>
+                            </a>
+                            <a href="#" class="link-item">
+                                <img src="../src/paypal.png" alt="PayPal">
+                                <span>Support Development</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 状态栏 -->
+        <div class="status-bar">
+            <div class="status-left">
+                <span id="connection-status" class="status disconnected">● Disconnected</span>
+            </div>
+            <div class="status-right">
+                <span id="last-update">Waiting for data...</span>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
