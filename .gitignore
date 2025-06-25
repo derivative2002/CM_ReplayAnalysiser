@@ -1,6 +1,7 @@
 SCO.spec
 SCO.exe
 venv/*
+.venv/
 *__pycache__*
 build
 dist
