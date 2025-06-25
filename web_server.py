@@ -112,10 +112,10 @@ async def handle_web_client(websocket, path):
         logger.info(f"Web客户端已断开: {websocket.remote_address}")
 
 
-def run_http_server(port=8081):
+def run_http_server(port=8082):
     """运行HTTP服务器"""
-    server = HTTPServer(('localhost', port), CustomHTTPRequestHandler)
-    logger.info(f"HTTP服务器启动在 http://localhost:{port}")
+    server = HTTPServer(('0.0.0.0', port), CustomHTTPRequestHandler)
+    logger.info(f"HTTP服务器启动在 http://0.0.0.0:{port}")
     server.serve_forever()
 
 
@@ -126,8 +126,8 @@ async def main():
     http_thread.start()
     
     # 启动WebSocket服务器（供Web客户端连接）
-    web_ws_server = await websockets.serve(handle_web_client, "localhost", 7307)
-    logger.info("Web WebSocket服务器启动在 ws://localhost:7307")
+    web_ws_server = await websockets.serve(handle_web_client, "0.0.0.0", 7308)
+    logger.info("Web WebSocket服务器启动在 ws://0.0.0.0:7308")
     
     # 启动WebSocket客户端（连接到主应用）
     client_task = asyncio.create_task(websocket_client())

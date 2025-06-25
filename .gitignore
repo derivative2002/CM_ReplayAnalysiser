@@ -29,3 +29,9 @@ debug.py
 SCO/*
 SCO.build/*
 SCO.dist/*
+test_replay/
+real_server.log
+web_server.log
+server.log
+*.tmp
+*.temp

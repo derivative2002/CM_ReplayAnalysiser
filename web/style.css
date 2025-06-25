@@ -423,17 +423,45 @@ body {
 }
 
 /* Statistics 标签页样式 */
-.stats-filters {
+.statistics-content {
+    height: 100%;
     display: flex;
-    gap: 10px;
-    margin-bottom: 20px;
-    padding: 10px;
-    background-color: #454545;
-    border: 1px solid #555555;
+    flex-direction: column;
 }
 
-.stats-filters select,
-.stats-filters input {
+/* 高级过滤器 */
+.stats-filters {
+    background-color: #2e2e2e;
+    border: 1px solid #555555;
+    border-radius: 3px;
+    padding: 10px;
+    margin-bottom: 10px;
+}
+
+.filter-row {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 8px;
+}
+
+.filter-row:last-child {
+    margin-bottom: 0;
+}
+
+.filter-group {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.filter-group label {
+    font-size: 11px;
+    color: #ffffff;
+    min-width: 60px;
+}
+
+.filter-group select,
+.filter-group input {
     height: 22px;
     background-color: #555555;
     border: 1px solid #666666;
@@ -442,17 +470,231 @@ body {
     padding: 0 5px;
 }
 
-.charts-container {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-    height: 400px;
+.filter-group select {
+    min-width: 80px;
 }
 
-.chart-box {
-    background-color: #454545;
+.filter-group input[type="date"] {
+    width: 130px;
+}
+
+.filter-group input[type="number"] {
+    width: 80px;
+}
+
+.filter-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.filter-btn, .analysis-btn {
+    height: 24px;
+    background-color: #555555;
+    border: 1px solid #666666;
+    color: #ffffff;
+    font-size: 11px;
+    padding: 0 12px;
+    cursor: pointer;
+    border-radius: 2px;
+}
+
+.filter-btn:hover, .analysis-btn:hover {
+    background-color: #666666;
+}
+
+/* 子标签页 */
+.stats-tabs {
+    height: 25px;
+    background-color: #2e2e2e;
     border: 1px solid #555555;
+    border-bottom: none;
+    display: flex;
+    font-size: 11px;
+}
+
+.stats-tab {
+    padding: 4px 12px;
+    background-color: #2e2e2e;
+    color: #cccccc;
+    border-right: 1px solid #555555;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    line-height: 17px;
+    user-select: none;
+}
+
+.stats-tab:hover {
+    background-color: #404040;
+}
+
+.stats-tab.active {
+    background-color: #3c3c3c;
+    color: #ffffff;
+    border-bottom: 1px solid #3c3c3c;
+}
+
+/* 子标签页内容 */
+.stats-tab-content {
+    flex: 1;
+    border: 1px solid #555555;
+    background-color: #3c3c3c;
+    overflow: hidden;
+}
+
+.stats-tab-pane {
+    display: none;
+    height: 100%;
     padding: 10px;
+    overflow-y: auto;
+}
+
+.stats-tab-pane.active {
+    display: block;
+}
+
+/* 统计表格 */
+.stats-section {
+    margin-bottom: 15px;
+}
+
+.stats-section h4 {
+    font-size: 12px;
+    font-weight: bold;
+    color: #ffffff;
+    margin-bottom: 8px;
+    border-bottom: 1px solid #555555;
+    padding-bottom: 3px;
+}
+
+.table-container {
+    border: 1px solid #555555;
+    border-radius: 3px;
+    overflow: auto;
+    max-height: 300px;
+}
+
+.stats-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11px;
+    background-color: #3c3c3c;
+}
+
+.stats-table th {
+    background-color: #2e2e2e;
+    color: #ffffff;
+    padding: 6px 8px;
+    text-align: left;
+    border-bottom: 1px solid #555555;
+    border-right: 1px solid #555555;
+    font-weight: bold;
+    position: sticky;
+    top: 0;
+    cursor: pointer;
+}
+
+.stats-table th:hover {
+    background-color: #404040;
+}
+
+.stats-table td {
+    padding: 4px 8px;
+    border-bottom: 1px solid #444444;
+    border-right: 1px solid #444444;
+    color: #ffffff;
+}
+
+.stats-table tr:hover {
+    background-color: #454545;
+}
+
+/* 图表容器 */
+.chart-container {
+    height: 250px;
+    background-color: #2e2e2e;
+    border: 1px solid #555555;
+    border-radius: 3px;
+    padding: 10px;
+    margin-top: 10px;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+/* 全分析页面 */
+.analysis-controls {
+    background-color: #2e2e2e;
+    border: 1px solid #555555;
+    border-radius: 3px;
+    padding: 10px;
+    margin-bottom: 15px;
+}
+
+.analysis-controls h4 {
+    font-size: 12px;
+    font-weight: bold;
+    color: #ffffff;
+    margin-bottom: 10px;
+}
+
+.analysis-options {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 10px;
+}
+
+.option-group label {
+    font-size: 11px;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.option-group input[type="checkbox"] {
+    width: 13px;
+    height: 13px;
+}
+
+.analysis-results {
+    flex: 1;
+    border: 1px solid #555555;
+    border-radius: 3px;
+    padding: 15px;
+    background-color: #2e2e2e;
+    min-height: 200px;
+}
+
+.analysis-placeholder {
+    text-align: center;
+    color: #999999;
+    font-style: italic;
+    margin-top: 50px;
+}
+
+/* 最快完成记录 */
+#fastest-completions {
+    background-color: #2e2e2e;
+    border: 1px solid #555555;
+    border-radius: 3px;
+    padding: 10px;
+    font-size: 11px;
+}
+
+.fastest-record {
+    display: flex;
+    justify-content: space-between;
+    padding: 3px 0;
+    border-bottom: 1px solid #444444;
+}
+
+.fastest-record:last-child {
+    border-bottom: none;
 }
 
 /* Links 标签页样式 */

@@ -190,11 +190,14 @@ class UI_TabWidget(object):
             set_dark_theme(self, app, TabWidget, APPVERSION)
 
         # 设置用户账户文件夹路径
-        onedrive_path = r'C:\Users\11727\OneDrive\Documents\StarCraft II\Accounts'
-        if os.path.isdir(onedrive_path):
-            SM.settings['account_folder'] = onedrive_path
-            logger.info(f"设置账户文件夹为: {onedrive_path}")
+        # 在开发环境（非Windows）优先使用test_replay文件夹
+        test_replay_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'test_replay')
+        if os.name != 'nt' and os.path.isdir(test_replay_path):
+            # 非Windows系统（如Linux开发环境）使用测试文件夹
+            SM.settings['account_folder'] = test_replay_path
+            logger.info(f"开发环境：使用测试回放文件夹 {test_replay_path}")
         else:
+            # Windows系统或没有test_replay时，使用原来的逻辑
             # 检查默认路径是否有效，如果无效则尝试查找
             SM.settings['account_folder'] = HF.get_account_dir(SM.settings['account_folder'])
 

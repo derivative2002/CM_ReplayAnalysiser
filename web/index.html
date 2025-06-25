@@ -200,30 +200,222 @@
                 <!-- Statistics 标签页 -->
                 <div class="tab-pane" id="statistics">
                     <div class="statistics-content">
+                        <!-- 高级过滤器 -->
                         <div class="stats-filters">
-                            <select id="difficulty-filter">
-                                <option value="">All Difficulties</option>
-                                <option value="1">Casual</option>
-                                <option value="2">Normal</option>
-                                <option value="3">Hard</option>
-                                <option value="4">Brutal</option>
-                                <option value="5">Brutal+</option>
-                            </select>
-                            <select id="region-filter">
-                                <option value="">All Regions</option>
-                                <option value="us">Americas</option>
-                                <option value="eu">Europe</option>
-                                <option value="kr">Asia</option>
-                            </select>
-                            <input type="date" id="from-date">
-                            <input type="date" id="to-date">
-                        </div>
-                        <div class="charts-container">
-                            <div class="chart-box">
-                                <canvas id="difficulty-chart"></canvas>
+                            <div class="filter-row">
+                                <div class="filter-group">
+                                    <label>难度:</label>
+                                    <select id="difficulty-filter">
+                                        <option value="">所有难度</option>
+                                        <option value="1">休闲</option>
+                                        <option value="2">普通</option>
+                                        <option value="3">困难</option>
+                                        <option value="4">残酷</option>
+                                        <option value="5">残酷+</option>
+                                    </select>
+                                </div>
+                                <div class="filter-group">
+                                    <label>地区:</label>
+                                    <select id="region-filter">
+                                        <option value="">所有地区</option>
+                                        <option value="us">美洲</option>
+                                        <option value="eu">欧洲</option>
+                                        <option value="kr">亚洲</option>
+                                        <option value="cn">中国</option>
+                                    </select>
+                                </div>
+                                <div class="filter-group">
+                                    <label>游戏类型:</label>
+                                    <select id="gametype-filter">
+                                        <option value="">所有类型</option>
+                                        <option value="normal">普通游戏</option>
+                                        <option value="mutation">突变</option>
+                                    </select>
+                                </div>
                             </div>
-                            <div class="chart-box">
-                                <canvas id="commander-chart"></canvas>
+                            <div class="filter-row">
+                                <div class="filter-group">
+                                    <label>开始日期:</label>
+                                    <input type="date" id="from-date">
+                                </div>
+                                <div class="filter-group">
+                                    <label>结束日期:</label>
+                                    <input type="date" id="to-date">
+                                </div>
+                                <div class="filter-group">
+                                    <label>游戏长度:</label>
+                                    <input type="number" id="min-length" placeholder="最小(分钟)" min="0">
+                                    <input type="number" id="max-length" placeholder="最大(分钟)" min="0">
+                                </div>
+                            </div>
+                            <div class="filter-actions">
+                                <button id="apply-filters" class="filter-btn">应用过滤器</button>
+                                <button id="reset-filters" class="filter-btn">重置</button>
+                                <button id="export-stats" class="filter-btn">导出数据</button>
+                            </div>
+                        </div>
+
+                        <!-- 子标签页 -->
+                        <div class="stats-tabs">
+                            <div class="stats-tab active" data-tab="maps">地图</div>
+                            <div class="stats-tab" data-tab="ally-commanders">盟友指挥官</div>
+                            <div class="stats-tab" data-tab="my-commanders">我的指挥官</div>
+                            <div class="stats-tab" data-tab="difficulty-region">难度和地区</div>
+                            <div class="stats-tab" data-tab="full-analysis">全分析</div>
+                        </div>
+
+                        <!-- 子标签页内容 -->
+                        <div class="stats-tab-content">
+                            <!-- 地图统计 -->
+                            <div class="stats-tab-pane active" id="maps">
+                                <div class="stats-section">
+                                    <h4>地图统计</h4>
+                                    <div class="table-container">
+                                        <table id="maps-table" class="stats-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>地图名称</th>
+                                                    <th>游戏次数</th>
+                                                    <th>胜利</th>
+                                                    <th>失败</th>
+                                                    <th>胜率</th>
+                                                    <th>平均时长</th>
+                                                    <th>最快完成</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="maps-table-body">
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                                <div class="stats-section">
+                                    <h4>最快完成记录</h4>
+                                    <div id="fastest-completions"></div>
+                                </div>
+                            </div>
+
+                            <!-- 盟友指挥官统计 -->
+                            <div class="stats-tab-pane" id="ally-commanders">
+                                <div class="stats-section">
+                                    <h4>盟友指挥官使用统计</h4>
+                                    <div class="table-container">
+                                        <table id="ally-commanders-table" class="stats-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>指挥官</th>
+                                                    <th>使用次数</th>
+                                                    <th>胜利</th>
+                                                    <th>失败</th>
+                                                    <th>胜率</th>
+                                                    <th>平均APM</th>
+                                                    <th>平均击杀</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="ally-commanders-table-body">
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                                <div class="chart-container">
+                                    <canvas id="ally-commanders-chart"></canvas>
+                                </div>
+                            </div>
+
+                            <!-- 我的指挥官统计 -->
+                            <div class="stats-tab-pane" id="my-commanders">
+                                <div class="stats-section">
+                                    <h4>我的指挥官使用统计</h4>
+                                    <div class="table-container">
+                                        <table id="my-commanders-table" class="stats-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>指挥官</th>
+                                                    <th>使用次数</th>
+                                                    <th>胜利</th>
+                                                    <th>失败</th>
+                                                    <th>胜率</th>
+                                                    <th>平均APM</th>
+                                                    <th>平均击杀</th>
+                                                    <th>精通等级</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="my-commanders-table-body">
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                                <div class="chart-container">
+                                    <canvas id="my-commanders-chart"></canvas>
+                                </div>
+                            </div>
+
+                            <!-- 难度和地区统计 -->
+                            <div class="stats-tab-pane" id="difficulty-region">
+                                <div class="stats-grid">
+                                    <div class="stats-section">
+                                        <h4>难度分布</h4>
+                                        <div class="chart-container">
+                                            <canvas id="difficulty-chart"></canvas>
+                                        </div>
+                                    </div>
+                                    <div class="stats-section">
+                                        <h4>地区分布</h4>
+                                        <div class="chart-container">
+                                            <canvas id="region-chart"></canvas>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="stats-section">
+                                    <h4>难度胜率统计</h4>
+                                    <div class="table-container">
+                                        <table id="difficulty-table" class="stats-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>难度</th>
+                                                    <th>游戏次数</th>
+                                                    <th>胜利</th>
+                                                    <th>失败</th>
+                                                    <th>胜率</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="difficulty-table-body">
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 全分析 -->
+                            <div class="stats-tab-pane" id="full-analysis">
+                                <div class="analysis-controls">
+                                    <h4>全分析控制面板</h4>
+                                    <div class="analysis-options">
+                                        <div class="option-group">
+                                            <label>
+                                                <input type="checkbox" id="include-mutations" checked>
+                                                包含突变游戏
+                                            </label>
+                                        </div>
+                                        <div class="option-group">
+                                            <label>
+                                                <input type="checkbox" id="include-custom-maps">
+                                                包含自定义地图
+                                            </label>
+                                        </div>
+                                        <div class="option-group">
+                                            <label>
+                                                <input type="checkbox" id="detailed-breakdown" checked>
+                                                详细分解
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <button id="run-full-analysis" class="analysis-btn">运行全分析</button>
+                                </div>
+                                <div id="analysis-results" class="analysis-results">
+                                    <div class="analysis-placeholder">
+                                        点击"运行全分析"开始深度分析
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
