@@ -467,6 +467,64 @@ for i, replay_path in enumerate(sorted(replays)[:5]):  # 限制前5个文件
 - 历史数据管理功能  
 - 数据缓存和性能优化
 
+## 🚀 游戏因子分析功能实现 (2025-06-25)
+
+### 功能概述
+成功将"Weekly Mutations"功能替换为"游戏因子分析"功能，提供每场游戏的详细因子分析和可视化展示。
+
+### ✅ 实现内容
+
+#### 1. 后端实现
+- **API端点**:
+  - `GET /api/game/factors/{game_id}` - 获取指定游戏的因子分析
+  - `GET /api/factors/statistics` - 获取因子统计数据
+- **因子提取**:
+  - 性能因子：APM、资源效率、单位控制评分
+  - 战斗因子：总击杀数、击杀效率
+  - 协作因子：协同作战评分
+  - 难度因子：基础难度、突变因子、游戏时长
+
+#### 2. 前端实现
+- **UI组件**:
+  - 游戏选择器：下拉菜单选择要分析的游戏
+  - 雷达图：使用Chart.js展示6维度因子对比
+  - 因子详情：分类展示各项因子具体数值
+  - 历史对比：显示与历史平均值的对比
+
+#### 3. 数据结构
+```json
+{
+  "game_id": "亡者之夜 (38).SC2Replay",
+  "performance_factors": {
+    "player1": {
+      "name": "Frost",
+      "commander": "Zagara",
+      "apm": 162,
+      "resource_efficiency": 86.2,
+      "unit_control_score": 81.0
+    }
+  },
+  "combat_factors": {
+    "total_kills": 0,
+    "kill_efficiency": 0
+  },
+  "cooperation_factors": {
+    "sync_score": 100
+  },
+  "difficulty_factors": {
+    "base_difficulty": 4,
+    "mutators": [],
+    "game_length": 1204
+  }
+}
+```
+
+### 测试结果
+- ✅ API端点响应正常
+- ✅ 前端页面显示正确
+- ✅ 雷达图可视化工作正常
+- ✅ 历史数据对比功能正常
+
 ## 时间估算
 
 ### 阶段1：后端服务 (2-3天)

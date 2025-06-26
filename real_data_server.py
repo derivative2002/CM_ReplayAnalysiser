@@ -41,7 +41,8 @@ COMMANDER_NAME_MAP = {
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from SCOFunctions.MainFunctions import find_replays
-from SCOFunctions.ReplayAnalysis import parse_replay_file
+from SCOFunctions.ReplayAnalysis import parse_replay_file, analyse_parsed_replay
+from SCOFunctions.IdentifyMutators import identify_mutators
 
 # 全局数据存储
 latest_replay_data = {}
@@ -75,6 +76,16 @@ class APIHandler(SimpleHTTPRequestHandler):
             self.handle_api_stats_summary()
         elif path == '/api/games/history':
             self.handle_api_games_history()
+        elif path.startswith('/api/game/factors/'):
+            self.handle_api_game_factors(path)
+        elif path == '/api/factors/statistics':
+            self.handle_api_factors_statistics()
+        elif path == '/api/mutator/overview':
+            self.handle_api_mutator_overview()
+        elif path == '/api/mutator/kills':
+            self.handle_api_mutator_kills()
+        elif path == '/api/mutator/performance':
+            self.handle_api_mutator_performance()
         elif path.startswith('/api/'):
             self.send_404()
         else:
@@ -289,6 +300,435 @@ class APIHandler(SimpleHTTPRequestHandler):
         json_data = json.dumps(data, ensure_ascii=False, indent=2)
         self.wfile.write(json_data.encode('utf-8'))
     
+    def handle_api_game_factors(self, path):
+        """处理游戏因子分析API"""
+        game_id = path.split('/')[-1]
+        
+        try:
+            game_id = int(game_id) - 1  # 转换为0索引
+            if 0 <= game_id < len(replay_cache):
+                filepath = list(replay_cache.keys())[game_id]
+                data = replay_cache[filepath]
+                
+                factors = self.extract_game_factors(data, filepath)
+                response = {
+                    'status': 'success',
+                    'data': factors,
+                    'timestamp': datetime.now().isoformat()
+                }
+            else:
+                response = {
+                    'status': 'error',
+                    'message': '游戏ID不存在',
+                    'timestamp': datetime.now().isoformat()
+                }
+        except:
+            response = {
+                'status': 'error',
+                'message': '无效的游戏ID',
+                'timestamp': datetime.now().isoformat()
+            }
+        
+        self.send_json_response(response)
+    
+    def handle_api_factors_statistics(self):
+        """处理因子统计API"""
+        if replay_cache:
+            all_factors = []
+            for filepath, data in replay_cache.items():
+                factors = self.extract_game_factors(data, filepath)
+                all_factors.append(factors)
+            
+            # 计算平均值
+            avg_factors = self.calculate_average_factors(all_factors)
+            
+            response = {
+                'status': 'success',
+                'data': {
+                    'total_games': len(all_factors),
+                    'average_factors': avg_factors,
+                    'factor_ranges': self.calculate_factor_ranges(all_factors)
+                },
+                'timestamp': datetime.now().isoformat()
+            }
+        else:
+            response = {
+                'status': 'no_data',
+                'message': '暂无因子统计数据',
+                'timestamp': datetime.now().isoformat()
+            }
+        
+        self.send_json_response(response)
+    
+    def extract_game_factors(self, replay_data, filepath):
+        """从回放数据中提取游戏因子"""
+        factors = {
+            'game_id': os.path.basename(filepath),
+            'map_factors': {
+                'map_name': replay_data.get('map_name', 'Unknown'),
+                'map_size': 'medium',  # 可以根据地图名称推断
+                'enemy_composition': replay_data.get('enemy_race', 'Mixed'),
+                'objective_type': 'standard'
+            },
+            'performance_factors': {},
+            'combat_factors': {
+                'total_kills': 0,
+                'kill_death_ratio': 0,
+                'damage_dealt': 0,
+                'damage_taken': 0
+            },
+            'cooperation_factors': {
+                'sync_score': 0,
+                'resource_sharing': 0,
+                'combined_attacks': 0
+            },
+            'difficulty_factors': {
+                'base_difficulty': self.extract_difficulty(replay_data),
+                'mutators': replay_data.get('mutators', []),
+                'adjusted_difficulty': self.extract_difficulty(replay_data)
+            },
+            'time_factors': {
+                'game_length': replay_data.get('length', 0),
+                'early_game_score': 0,
+                'mid_game_score': 0,
+                'late_game_score': 0
+            }
+        }
+        
+        # 提取玩家性能因子
+        if 'players' in replay_data:
+            human_players = []
+            for player in replay_data['players']:
+                if player.get('result') in ['Win', 'Loss'] and player.get('commander'):
+                    human_players.append(player)
+            
+            for i, player in enumerate(human_players[:2]):
+                player_key = f'player{i+1}'
+                factors['performance_factors'][player_key] = {
+                    'name': player.get('name', f'Player{i+1}'),
+                    'commander': player.get('commander', 'Unknown'),
+                    'apm': player.get('apm', 0),
+                    'resource_efficiency': self.calculate_resource_efficiency(player),
+                    'unit_control_score': self.calculate_unit_control_score(player)
+                }
+                
+                # 累加战斗因子
+                factors['combat_factors']['total_kills'] += player.get('kills', 0)
+        
+        # 计算协作分数
+        factors['cooperation_factors']['sync_score'] = self.calculate_sync_score(replay_data)
+        
+        return factors
+    
+    def calculate_resource_efficiency(self, player_data):
+        """计算资源效率"""
+        # 简化计算：基于APM和游戏结果
+        base_score = 50
+        if player_data.get('result') == 'Win':
+            base_score += 20
+        apm = player_data.get('apm', 100)
+        return min(100, base_score + (apm / 10))
+    
+    def calculate_unit_control_score(self, player_data):
+        """计算单位控制评分"""
+        # 基于APM和击杀数
+        apm = player_data.get('apm', 100)
+        kills = player_data.get('kills', 0)
+        return min(100, (apm / 2) + (kills / 10))
+    
+    def calculate_sync_score(self, replay_data):
+        """计算协同作战评分"""
+        # 简化：基于游戏结果和时长
+        base_score = 50
+        if replay_data.get('result') == 'Victory':
+            base_score += 30
+        # 游戏时长越接近20分钟，协同分越高
+        game_length = replay_data.get('length', 1200)
+        if 900 <= game_length <= 1500:  # 15-25分钟
+            base_score += 20
+        return min(100, base_score)
+    
+    def calculate_average_factors(self, all_factors):
+        """计算平均因子值"""
+        if not all_factors:
+            return {}
+        
+        avg = {
+            'performance': {
+                'avg_apm': 0,
+                'avg_resource_efficiency': 0,
+                'avg_unit_control': 0
+            },
+            'combat': {
+                'avg_kills': 0,
+                'avg_kd_ratio': 0
+            },
+            'cooperation': {
+                'avg_sync_score': 0
+            }
+        }
+        
+        total_apm = 0
+        total_efficiency = 0
+        total_control = 0
+        total_kills = 0
+        total_sync = 0
+        player_count = 0
+        
+        for factors in all_factors:
+            for player_key in ['player1', 'player2']:
+                if player_key in factors['performance_factors']:
+                    player = factors['performance_factors'][player_key]
+                    total_apm += player.get('apm', 0)
+                    total_efficiency += player.get('resource_efficiency', 0)
+                    total_control += player.get('unit_control_score', 0)
+                    player_count += 1
+            
+            total_kills += factors['combat_factors']['total_kills']
+            total_sync += factors['cooperation_factors']['sync_score']
+        
+        if player_count > 0:
+            avg['performance']['avg_apm'] = total_apm / player_count
+            avg['performance']['avg_resource_efficiency'] = total_efficiency / player_count
+            avg['performance']['avg_unit_control'] = total_control / player_count
+        
+        if all_factors:
+            avg['combat']['avg_kills'] = total_kills / len(all_factors)
+            avg['cooperation']['avg_sync_score'] = total_sync / len(all_factors)
+        
+        return avg
+    
+    def calculate_factor_ranges(self, all_factors):
+        """计算因子范围"""
+        ranges = {
+            'apm': {'min': float('inf'), 'max': 0},
+            'kills': {'min': float('inf'), 'max': 0},
+            'game_length': {'min': float('inf'), 'max': 0}
+        }
+        
+        for factors in all_factors:
+            # APM范围
+            for player_key in ['player1', 'player2']:
+                if player_key in factors['performance_factors']:
+                    apm = factors['performance_factors'][player_key].get('apm', 0)
+                    ranges['apm']['min'] = min(ranges['apm']['min'], apm)
+                    ranges['apm']['max'] = max(ranges['apm']['max'], apm)
+            
+            # 击杀范围
+            kills = factors['combat_factors']['total_kills']
+            ranges['kills']['min'] = min(ranges['kills']['min'], kills)
+            ranges['kills']['max'] = max(ranges['kills']['max'], kills)
+            
+            # 游戏时长范围
+            length = factors['time_factors']['game_length']
+            if length > 0:
+                ranges['game_length']['min'] = min(ranges['game_length']['min'], length)
+                ranges['game_length']['max'] = max(ranges['game_length']['max'], length)
+        
+        # 处理无数据情况
+        for key in ranges:
+            if ranges[key]['min'] == float('inf'):
+                ranges[key]['min'] = 0
+        
+        return ranges
+    
+    def handle_api_mutator_overview(self):
+        """处理突变因子概览API"""
+        mutator_stats = {}
+        total_mutation_games = 0
+        total_games = len(replay_cache)
+        
+        # 从单位击杀信息推断突变因子的映射
+        mutator_unit_mapping = {
+            'MutatorDeathBot': 'Kill Bots',
+            'MutatorMurderBot': 'Kill Bots',
+            'MutatorBoomBot': 'Boom Bots',
+            'MutatorPropagator': 'Propagators',
+            'MutatorSpiderMine': 'Minesweeper',
+            'MutatorPurifierBeam': 'Purifier Beam',
+            'MutatorTornado': 'Twister',
+            'MutatorAmonArtanis': 'Heroes from the Storm',
+            'MutatorAmonKerrigan': 'Heroes from the Storm',
+            'MutatorAmonZeratul': 'Heroes from the Storm',
+            'MutatorAmonNova': 'Heroes from the Storm',
+            'MutatorAmonRaynor': 'Heroes from the Storm',
+            'MutatorAmonZagara': 'Heroes from the Storm',
+            'MutatorAmonTychus': 'Heroes from the Storm',
+            'MutatorAmonDehaka': 'Heroes from the Storm',
+        }
+        
+        # 统计突变因子
+        for filepath, data in replay_cache.items():
+            mutators = list(data.get('mutators', []))
+            detected_mutators = set()
+            
+            # 从击杀信息推断突变因子
+            if 'amon_units' in data:
+                for unit in data['amon_units']:
+                    for mutator_unit, mutator_name in mutator_unit_mapping.items():
+                        if mutator_unit in unit:
+                            detected_mutators.add(mutator_name)
+            
+            # 合并识别的突变因子
+            all_mutators = set(mutators) | detected_mutators
+            
+            if all_mutators:
+                total_mutation_games += 1
+                for mutator in all_mutators:
+                    if mutator not in mutator_stats:
+                        mutator_stats[mutator] = {
+                            'count': 0,
+                            'wins': 0,
+                            'total_time': 0,
+                            'games': []
+                        }
+                    mutator_stats[mutator]['count'] += 1
+                    mutator_stats[mutator]['games'].append(filepath)
+                    if data.get('result') == 'Victory':
+                        mutator_stats[mutator]['wins'] += 1
+                    mutator_stats[mutator]['total_time'] += data.get('length', 0)
+        
+        # 计算百分比和胜率
+        for mutator, stats in mutator_stats.items():
+            stats['percentage'] = (stats['count'] / total_mutation_games * 100) if total_mutation_games > 0 else 0
+            stats['win_rate'] = (stats['wins'] / stats['count'] * 100) if stats['count'] > 0 else 0
+            stats['avg_completion_time'] = stats['total_time'] / stats['count'] if stats['count'] > 0 else 0
+            del stats['games']  # 移除文件路径列表
+        
+        # 获取敌人组成
+        enemy_composition = {}
+        for filepath, data in replay_cache.items():
+            enemy_race = data.get('enemy_race', 'Unknown')
+            enemy_composition[enemy_race] = enemy_composition.get(enemy_race, 0) + 1
+        
+        response = {
+            'status': 'success',
+            'data': {
+                'mutator_stats': {
+                    'total_mutation_games': total_mutation_games,
+                    'total_games': total_games,
+                    'mutation_percentage': (total_mutation_games / total_games * 100) if total_games > 0 else 0,
+                    'mutators': mutator_stats
+                },
+                'enemy_composition': enemy_composition
+            },
+            'timestamp': datetime.now().isoformat()
+        }
+        
+        self.send_json_response(response)
+    
+    def handle_api_mutator_kills(self):
+        """处理突变因子特殊击杀统计API"""
+        special_kills = {
+            'voidrifts': {'total': 0, 'player1': 0, 'player2': 0, 'games_with': 0},
+            'propagators': {'total': 0, 'player1': 0, 'player2': 0, 'games_with': 0},
+            'tus': {'total': 0, 'player1': 0, 'player2': 0, 'games_with': 0},
+            'voidreanimators': {'total': 0, 'player1': 0, 'player2': 0, 'games_with': 0},
+            'turkey': {'total': 0, 'player1': 0, 'player2': 0, 'games_with': 0},
+            'hfts': {'total': 0, 'player1': 0, 'player2': 0, 'games_with': 0}
+        }
+        
+        # 统计特殊单位击杀
+        for filepath, data in replay_cache.items():
+            kills = data.get('special_kills', {})
+            if isinstance(kills, dict):
+                for unit_type, unit_kills in kills.items():
+                    if unit_type in special_kills and isinstance(unit_kills, dict):
+                        if 1 in unit_kills or 2 in unit_kills:
+                            special_kills[unit_type]['games_with'] += 1
+                            special_kills[unit_type]['player1'] += unit_kills.get(1, 0)
+                            special_kills[unit_type]['player2'] += unit_kills.get(2, 0)
+                            special_kills[unit_type]['total'] += unit_kills.get(1, 0) + unit_kills.get(2, 0)
+        
+        # 计算平均值
+        total_games = len(replay_cache)
+        for unit_type in special_kills:
+            games_with = special_kills[unit_type]['games_with']
+            if games_with > 0:
+                special_kills[unit_type]['avg_per_game'] = special_kills[unit_type]['total'] / games_with
+            else:
+                special_kills[unit_type]['avg_per_game'] = 0
+            
+            special_kills[unit_type]['player_distribution'] = {
+                'player1': special_kills[unit_type]['player1'],
+                'player2': special_kills[unit_type]['player2']
+            }
+        
+        response = {
+            'status': 'success',
+            'data': {
+                'special_kills': special_kills,
+                'total_games': total_games
+            },
+            'timestamp': datetime.now().isoformat()
+        }
+        
+        self.send_json_response(response)
+    
+    def handle_api_mutator_performance(self):
+        """处理指挥官对抗突变表现API"""
+        commander_performance = {}
+        
+        # 分析每个指挥官对抗不同突变的表现
+        for filepath, data in replay_cache.items():
+            mutators = data.get('mutators', [])
+            if not mutators:
+                continue
+                
+            # 获取玩家信息
+            if 'players' in data:
+                for player in data['players'][:2]:  # 只看前两个玩家
+                    commander = player.get('commander', 'Unknown')
+                    if commander == 'Unknown':
+                        continue
+                        
+                    if commander not in commander_performance:
+                        commander_performance[commander] = {}
+                    
+                    # 对每个突变因子记录表现
+                    for mutator in mutators:
+                        key = f'vs_{mutator.lower().replace(" ", "_")}'
+                        if key not in commander_performance[commander]:
+                            commander_performance[commander][key] = {
+                                'games': 0,
+                                'wins': 0,
+                                'total_apm': 0,
+                                'total_kills': 0
+                            }
+                        
+                        stats = commander_performance[commander][key]
+                        stats['games'] += 1
+                        if data.get('result') == 'Victory':
+                            stats['wins'] += 1
+                        stats['total_apm'] += player.get('apm', 0)
+                        stats['total_kills'] += player.get('kills', 0)
+        
+        # 计算胜率和平均值
+        for commander, mutator_stats in commander_performance.items():
+            for mutator_key, stats in mutator_stats.items():
+                if stats['games'] > 0:
+                    stats['win_rate'] = (stats['wins'] / stats['games'] * 100)
+                    stats['avg_apm'] = stats['total_apm'] / stats['games']
+                    stats['avg_kills'] = stats['total_kills'] / stats['games']
+                else:
+                    stats['win_rate'] = 0
+                    stats['avg_apm'] = 0
+                    stats['avg_kills'] = 0
+                
+                # 清理临时字段
+                del stats['total_apm']
+                del stats['total_kills']
+        
+        response = {
+            'status': 'success',
+            'data': {
+                'commander_performance': commander_performance
+            },
+            'timestamp': datetime.now().isoformat()
+        }
+        
+        self.send_json_response(response)
+    
     def send_404(self):
         """发送404响应"""
         self.send_response(404)
@@ -326,12 +766,40 @@ def analyze_replays():
             print(f"分析 {i+1}/{total_replays}: {os.path.basename(replay_path)}")
             
             # 解析回放文件
-            replay_data = parse_replay_file(replay_path)
+            parsed_replay = parse_replay_file(replay_path)
             
-            if replay_data:
-                # 清理数据中的bytes对象
-                cleaned_data = clean_replay_data(replay_data)
-                replay_cache[replay_path] = cleaned_data
+            if parsed_replay:
+                # 分析回放数据
+                try:
+                    analysis_result = analyse_parsed_replay(replay_path, parsed_replay)
+                    
+                    # 识别突变因子
+                    mutator_info = {}
+                    if parsed_replay.get('m_version') and parsed_replay.get('m_syncLobbyState'):
+                        events = parsed_replay.get('events', [])
+                        mutator_info = identify_mutators(
+                            events, 
+                            extension=True,
+                            detailed_info=parsed_replay
+                        )
+                    
+                    # 合并数据
+                    replay_data = {
+                        **parsed_replay,
+                        'analysis': analysis_result,
+                        'mutators': mutator_info.get('mutators', []) if isinstance(mutator_info, dict) else [],
+                        'special_kills': extract_special_kills(analysis_result) if analysis_result else {}
+                    }
+                    
+                    # 清理数据中的bytes对象
+                    cleaned_data = clean_replay_data(replay_data)
+                    replay_cache[replay_path] = cleaned_data
+                except Exception as e:
+                    print(f"  ✗ 分析失败: {e}")
+                    # 使用基础数据
+                    replay_data = parsed_replay
+                    cleaned_data = clean_replay_data(replay_data)
+                    replay_cache[replay_path] = cleaned_data
                 
                 # 更新最新回放数据
                 latest_replay_data = {
@@ -351,6 +819,36 @@ def analyze_replays():
             print(f"  ✗ 错误: {e}")
     
     print(f"分析完成，成功解析 {len(replay_cache)} 个回放")
+
+def extract_special_kills(analysis_result):
+    """从分析结果中提取特殊单位击杀数据"""
+    special_kills = {}
+    
+    # 特殊单位类型映射
+    special_units = ['voidrifts', 'propagators', 'tus', 'voidreanimators', 'turkey', 'hfts']
+    
+    # 从mainIcons和allyIcons中提取数据
+    main_icons = analysis_result.get('mainIcons', {})
+    ally_icons = analysis_result.get('allyIcons', {})
+    
+    for unit_type in special_units:
+        if unit_type in main_icons or unit_type in ally_icons:
+            # 获取主玩家击杀数（玩家1）
+            player1_kills = 0
+            if unit_type in main_icons and isinstance(main_icons[unit_type], (int, float)):
+                player1_kills = int(main_icons[unit_type])
+            
+            # 获取盟友击杀数（玩家2）
+            player2_kills = 0
+            if unit_type in ally_icons and isinstance(ally_icons[unit_type], (int, float)):
+                player2_kills = int(ally_icons[unit_type])
+            
+            special_kills[unit_type] = {
+                1: player1_kills,
+                2: player2_kills
+            }
+    
+    return special_kills
 
 def clean_replay_data(data):
     """清理回放数据中的bytes对象"""

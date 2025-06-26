@@ -91,8 +91,8 @@ function initTabContent(tabName) {
         case 'statistics':
             initStatistics();
             break;
-        case 'weeklies':
-            initWeeklies();
+        case 'game-factors':
+            initGameFactors();
             break;
         case 'mutator-stats':
             initMutatorStats();
@@ -532,19 +532,303 @@ function updateChartData() {
     charts.commander.update();
 }
 
-// 每周页面
-function initWeeklies() {
-    // 这里可以添加获取每周突变信息的逻辑
-    updateWeeklyInfo();
+// 游戏因子分析页面
+let factorsChart = null;
+let currentGameFactors = null;
+
+function initGameFactors() {
+    // 填充游戏选择器
+    populateGameSelector();
+    
+    // 绑定事件
+    const gameSelect = document.getElementById('game-select');
+    if (gameSelect) {
+        gameSelect.addEventListener('change', handleGameSelection);
+    }
+    
+    // 初始化雷达图
+    initFactorsRadarChart();
 }
 
-function updateWeeklyInfo() {
-    // 模拟数据，实际应该从服务器获取
-    document.getElementById('weekly-map').textContent = 'Void Thrashing';
-    document.getElementById('weekly-mutators').textContent = 'Diffusion, Void Rifts';
-    document.getElementById('weekly-attempts').textContent = '0';
-    document.getElementById('weekly-wins').textContent = '0';
-    document.getElementById('weekly-winrate').textContent = '0%';
+function populateGameSelector() {
+    const gameSelect = document.getElementById('game-select');
+    if (!gameSelect || gameHistory.length === 0) return;
+    
+    // 清空现有选项
+    gameSelect.innerHTML = '<option value="">请选择一场游戏...</option>';
+    
+    // 添加游戏选项
+    gameHistory.forEach((game, index) => {
+        const option = document.createElement('option');
+        option.value = index + 1;  // 游戏ID从1开始
+        const date = new Date(game.date).toLocaleDateString();
+        const commander1 = game.player1?.commander_cn || game.player1?.commander || 'Unknown';
+        const commander2 = game.player2?.commander_cn || game.player2?.commander || 'Unknown';
+        option.textContent = `${game.mapName} - ${commander1} & ${commander2} - ${date}`;
+        gameSelect.appendChild(option);
+    });
+}
+
+async function handleGameSelection(event) {
+    const gameId = event.target.value;
+    if (!gameId) {
+        clearFactorsDisplay();
+        return;
+    }
+    
+    try {
+        // 获取游戏因子数据
+        const response = await fetch(`/api/game/factors/${gameId}`);
+        const result = await response.json();
+        
+        if (result.status === 'success') {
+            currentGameFactors = result.data;
+            displayGameFactors(currentGameFactors);
+        } else {
+            console.error('获取游戏因子失败:', result.message);
+            showFactorsError('无法加载游戏因子数据');
+        }
+    } catch (error) {
+        console.error('加载游戏因子失败:', error);
+        showFactorsError('加载失败，请重试');
+    }
+}
+
+function initFactorsRadarChart() {
+    const ctx = document.getElementById('factors-radar-chart');
+    if (!ctx) return;
+    
+    factorsChart = new Chart(ctx, {
+        type: 'radar',
+        data: {
+            labels: ['APM', '资源效率', '单位控制', '击杀效率', '协作评分', '生存能力'],
+            datasets: [{
+                label: '当前游戏',
+                data: [0, 0, 0, 0, 0, 0],
+                backgroundColor: 'rgba(135, 206, 235, 0.2)',
+                borderColor: 'rgba(135, 206, 235, 1)',
+                borderWidth: 2,
+                pointBackgroundColor: 'rgba(135, 206, 235, 1)'
+            }, {
+                label: '历史平均',
+                data: [0, 0, 0, 0, 0, 0],
+                backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                borderColor: 'rgba(255, 99, 132, 1)',
+                borderWidth: 2,
+                pointBackgroundColor: 'rgba(255, 99, 132, 1)'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            scales: {
+                r: {
+                    beginAtZero: true,
+                    max: 100,
+                    grid: {
+                        color: 'rgba(255, 255, 255, 0.1)'
+                    },
+                    ticks: {
+                        color: '#ffffff',
+                        backdropColor: 'transparent'
+                    },
+                    pointLabels: {
+                        color: '#ffffff',
+                        font: {
+                            size: 11
+                        }
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    labels: {
+                        color: '#ffffff',
+                        font: {
+                            size: 11
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+function displayGameFactors(factors) {
+    // 更新雷达图
+    updateFactorsRadarChart(factors);
+    
+    // 更新因子详情
+    updateFactorDetails(factors);
+    
+    // 获取并显示统计对比
+    loadFactorsStatistics();
+}
+
+function updateFactorsRadarChart(factors) {
+    if (!factorsChart) return;
+    
+    // 计算雷达图数据
+    const player1 = factors.performance_factors.player1 || {};
+    const player2 = factors.performance_factors.player2 || {};
+    
+    // 平均两个玩家的数据
+    const avgAPM = ((player1.apm || 0) + (player2.apm || 0)) / 2;
+    const avgEfficiency = ((player1.resource_efficiency || 0) + (player2.resource_efficiency || 0)) / 2;
+    const avgControl = ((player1.unit_control_score || 0) + (player2.unit_control_score || 0)) / 2;
+    
+    // 计算击杀效率（基于总击杀数和游戏时长）
+    const gameLength = factors.time_factors.game_length || 1;
+    const killEfficiency = Math.min(100, (factors.combat_factors.total_kills / (gameLength / 60)) * 10);
+    
+    // 协作评分
+    const syncScore = factors.cooperation_factors.sync_score || 0;
+    
+    // 生存能力（简化计算）
+    const survivalScore = factors.difficulty_factors.base_difficulty >= 4 ? 80 : 60;
+    
+    // 更新图表数据
+    factorsChart.data.datasets[0].data = [
+        Math.min(100, avgAPM / 2),  // APM转换为0-100分数
+        avgEfficiency,
+        avgControl,
+        killEfficiency,
+        syncScore,
+        survivalScore
+    ];
+    
+    factorsChart.update();
+}
+
+function updateFactorDetails(factors) {
+    // 性能因子
+    const performanceHtml = [];
+    for (const [key, player] of Object.entries(factors.performance_factors)) {
+        performanceHtml.push(`
+            <div class="factor-item">
+                <span class="factor-name">${player.name} (${player.commander})</span>
+                <span class="factor-value">APM: ${player.apm}</span>
+            </div>
+            <div class="factor-item">
+                <span class="factor-name">资源效率</span>
+                <span class="factor-value">${player.resource_efficiency.toFixed(1)}%</span>
+            </div>
+            <div class="factor-item">
+                <span class="factor-name">单位控制</span>
+                <span class="factor-value">${player.unit_control_score.toFixed(1)}</span>
+            </div>
+        `);
+    }
+    document.getElementById('performance-factors').innerHTML = performanceHtml.join('');
+    
+    // 战斗因子
+    const combatHtml = `
+        <div class="factor-item">
+            <span class="factor-name">总击杀数</span>
+            <span class="factor-value">${factors.combat_factors.total_kills}</span>
+        </div>
+        <div class="factor-item">
+            <span class="factor-name">击杀效率</span>
+            <span class="factor-value">${(factors.combat_factors.total_kills / (factors.time_factors.game_length / 60)).toFixed(1)}/分钟</span>
+        </div>
+    `;
+    document.getElementById('combat-factors').innerHTML = combatHtml;
+    
+    // 协作因子
+    const cooperationHtml = `
+        <div class="factor-item">
+            <span class="factor-name">协同评分</span>
+            <span class="factor-value">${factors.cooperation_factors.sync_score}</span>
+        </div>
+    `;
+    document.getElementById('cooperation-factors').innerHTML = cooperationHtml;
+    
+    // 难度因子
+    const difficultyName = getDifficultyName(factors.difficulty_factors.base_difficulty);
+    const mutatorsText = factors.difficulty_factors.mutators.length > 0 ? 
+        factors.difficulty_factors.mutators.join(', ') : '无';
+    
+    const difficultyHtml = `
+        <div class="factor-item">
+            <span class="factor-name">基础难度</span>
+            <span class="factor-value">${difficultyName}</span>
+        </div>
+        <div class="factor-item">
+            <span class="factor-name">突变因子</span>
+            <span class="factor-value">${mutatorsText}</span>
+        </div>
+        <div class="factor-item">
+            <span class="factor-name">游戏时长</span>
+            <span class="factor-value">${formatDuration(factors.time_factors.game_length)}</span>
+        </div>
+    `;
+    document.getElementById('difficulty-factors').innerHTML = difficultyHtml;
+}
+
+async function loadFactorsStatistics() {
+    try {
+        const response = await fetch('/api/factors/statistics');
+        const result = await response.json();
+        
+        if (result.status === 'success' && factorsChart) {
+            const avgData = result.data.average_factors;
+            
+            // 更新雷达图的历史平均数据
+            factorsChart.data.datasets[1].data = [
+                Math.min(100, avgData.performance.avg_apm / 2),
+                avgData.performance.avg_resource_efficiency,
+                avgData.performance.avg_unit_control,
+                Math.min(100, (avgData.combat.avg_kills / 20) * 10),  // 假设20分钟游戏
+                avgData.cooperation.avg_sync_score,
+                70  // 平均生存能力
+            ];
+            
+            factorsChart.update();
+            
+            // 更新对比显示
+            updateFactorsComparison(result.data);
+        }
+    } catch (error) {
+        console.error('加载因子统计失败:', error);
+    }
+}
+
+function updateFactorsComparison(statsData) {
+    const comparisonHtml = `
+        <div class="comparison-stats">
+            <p>总游戏数: ${statsData.total_games}</p>
+            <p>APM范围: ${statsData.factor_ranges.apm.min} - ${statsData.factor_ranges.apm.max}</p>
+            <p>击杀范围: ${statsData.factor_ranges.kills.min} - ${statsData.factor_ranges.kills.max}</p>
+            <p>游戏时长范围: ${formatDuration(statsData.factor_ranges.game_length.min)} - ${formatDuration(statsData.factor_ranges.game_length.max)}</p>
+        </div>
+    `;
+    
+    document.getElementById('factors-comparison-chart').innerHTML = comparisonHtml;
+}
+
+function clearFactorsDisplay() {
+    // 清空雷达图
+    if (factorsChart) {
+        factorsChart.data.datasets[0].data = [0, 0, 0, 0, 0, 0];
+        factorsChart.update();
+    }
+    
+    // 清空详情
+    document.getElementById('performance-factors').innerHTML = '';
+    document.getElementById('combat-factors').innerHTML = '';
+    document.getElementById('cooperation-factors').innerHTML = '';
+    document.getElementById('difficulty-factors').innerHTML = '';
+    document.getElementById('factors-comparison-chart').innerHTML = '<div class="comparison-container">请选择一场游戏查看对比</div>';
+}
+
+function showFactorsError(message) {
+    const factorSections = ['performance-factors', 'combat-factors', 'cooperation-factors', 'difficulty-factors'];
+    factorSections.forEach(id => {
+        const element = document.getElementById(id);
+        if (element) {
+            element.innerHTML = `<div style="color: #ff6b6b;">${message}</div>`;
+        }
+    });
 }
 
 // WebSocket 连接
@@ -1438,9 +1722,202 @@ function exportStats() {
     URL.revokeObjectURL(url);
 }
 
+// 突变因子中文映射
+const mutatorNameMapping = {
+    'Kill Bots': '杀戮机器人',
+    'Boom Bots': '爆破机器人', 
+    'Propagators': '传播者',
+    'Minesweeper': '扫雷',
+    'Purifier Beam': '净化者光束',
+    'Twister': '龙卷风',
+    'Heroes from the Storm': '风暴英雄',
+    'Walking Infested': '行尸',
+    'Speed Freaks': '极速狂飙',
+    'Avenger': '复仇者',
+    'We Move Unseen': '隐形行动',
+    'Void Rifts': '虚空裂缝',
+    'Darkness': '黑暗',
+    'Time Warp': '时间扭曲',
+    'Mag-nificent': '磁力地雷',
+    'Mineral Shields': '矿物护盾',
+    'Barrier': '屏障',
+    'Evasive Maneuvers': '闪避机动',
+    'Scorched Earth': '焦土',
+    'Lava Burst': '熔岩爆发',
+    'Self Destruction': '自毁',
+    'Aggressive Deployment': '激进部署',
+    'Alien Incubation': '异虫孵化',
+    'Laser Drill': '激光钻机',
+    'Long Range': '远程攻击',
+    'Shortsighted': '近视',
+    'Mutually Assured Destruction': '同归于尽',
+    'Just Die!': '死而复生',
+    'Temporal Field': '时间力场',
+    'Blizzard': '暴风雪',
+    'Fear': '恐惧',
+    'Photon Overload': '光子过载',
+    'Life Leech': '生命汲取',
+    'Power Overwhelming': '能量压制',
+    'Micro Transactions': '微操成本',
+    'Polarity': '极性',
+    'Transmutation': '转化'
+};
+
+// 特殊单位中文映射
+const specialUnitMapping = {
+    'voidrifts': '虚空裂缝',
+    'propagators': '传播者',
+    'tus': '风暴英雄',
+    'voidreanimators': '虚空复活者',
+    'turkey': '火鸡',
+    'hfts': '风暴英雄'
+};
+
+// 突变因子统计全局变量
+let mutatorSortColumn = 1; // 默认按出现次数排序
+let mutatorSortAscending = false;
+
 // 其他标签页初始化函数
 function initMutatorStats() {
     console.log('初始化突变因子统计页面');
+    loadMutatorStats();
+}
+
+// 加载突变因子统计数据
+async function loadMutatorStats() {
+    try {
+        // 加载突变因子概览
+        const overviewResponse = await fetch('/api/mutator/overview');
+        const overviewResult = await overviewResponse.json();
+        
+        if (overviewResult.status === 'success') {
+            updateMutatorOverview(overviewResult.data);
+        }
+        
+        // 加载特殊单位击杀统计
+        const killsResponse = await fetch('/api/mutator/kills');
+        const killsResult = await killsResponse.json();
+        
+        if (killsResult.status === 'success') {
+            updateSpecialKills(killsResult.data);
+        }
+    } catch (error) {
+        console.error('加载突变因子统计失败:', error);
+    }
+}
+
+// 更新突变因子概览
+function updateMutatorOverview(data) {
+    // 更新概览卡片
+    document.getElementById('total-games').textContent = data.mutator_stats.total_games;
+    document.getElementById('mutation-games').textContent = data.mutator_stats.total_mutation_games;
+    document.getElementById('mutation-percentage').textContent = 
+        data.mutator_stats.mutation_percentage.toFixed(1) + '%';
+    
+    // 更新突变因子表格
+    const tbody = document.getElementById('mutator-tbody');
+    tbody.innerHTML = '';
+    
+    // 转换为数组并排序
+    const mutatorsArray = Object.entries(data.mutator_stats.mutators).map(([name, stats]) => ({
+        name: name,
+        ...stats
+    }));
+    
+    // 根据当前排序设置排序
+    sortMutators(mutatorsArray);
+    
+    // 创建表格行
+    mutatorsArray.forEach(mutator => {
+        const tr = document.createElement('tr');
+        const chineseName = mutatorNameMapping[mutator.name] || mutator.name;
+        
+        tr.innerHTML = `
+            <td>${chineseName}</td>
+            <td>${mutator.count}</td>
+            <td>${mutator.percentage.toFixed(1)}%</td>
+            <td>${mutator.win_rate.toFixed(1)}%</td>
+            <td>${formatDuration(mutator.avg_completion_time)}</td>
+        `;
+        
+        tbody.appendChild(tr);
+    });
+}
+
+// 更新特殊单位击杀统计
+function updateSpecialKills(data) {
+    const container = document.getElementById('special-kills-grid');
+    container.innerHTML = '';
+    
+    Object.entries(data.special_kills).forEach(([unitType, stats]) => {
+        const card = document.createElement('div');
+        card.className = 'kill-stat-card';
+        
+        const unitName = specialUnitMapping[unitType] || unitType;
+        const avgPerGame = stats.avg_per_game.toFixed(1);
+        
+        card.innerHTML = `
+            <div class="kill-stat-title">${unitName}</div>
+            <div class="kill-stat-value">${stats.total}</div>
+            <div class="kill-stat-detail">
+                平均每场: ${avgPerGame}<br>
+                出现场次: ${stats.games_with}
+            </div>
+        `;
+        
+        container.appendChild(card);
+    });
+}
+
+// 排序突变因子表格
+function sortMutatorTable(column) {
+    if (mutatorSortColumn === column) {
+        mutatorSortAscending = !mutatorSortAscending;
+    } else {
+        mutatorSortColumn = column;
+        mutatorSortAscending = column === 0; // 名称列默认升序，其他列默认降序
+    }
+    
+    // 重新加载数据
+    loadMutatorStats();
+}
+
+// 排序突变因子数组
+function sortMutators(mutatorsArray) {
+    mutatorsArray.sort((a, b) => {
+        let aVal, bVal;
+        
+        switch (mutatorSortColumn) {
+            case 0: // 名称
+                aVal = mutatorNameMapping[a.name] || a.name;
+                bVal = mutatorNameMapping[b.name] || b.name;
+                break;
+            case 1: // 出现次数
+                aVal = a.count;
+                bVal = b.count;
+                break;
+            case 2: // 占比
+                aVal = a.percentage;
+                bVal = b.percentage;
+                break;
+            case 3: // 胜率
+                aVal = a.win_rate;
+                bVal = b.win_rate;
+                break;
+            case 4: // 平均时长
+                aVal = a.avg_completion_time;
+                bVal = b.avg_completion_time;
+                break;
+            default:
+                return 0;
+        }
+        
+        if (typeof aVal === 'string') {
+            return mutatorSortAscending ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+        } else {
+            return mutatorSortAscending ? aVal - bVal : bVal - aVal;
+        }
+    });
 }
 
 function initCustomMaps() {

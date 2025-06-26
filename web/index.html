@@ -15,7 +15,7 @@
                 <div class="tab active" data-tab="settings">Settings</div>
                 <div class="tab" data-tab="games">Games</div>
                 <div class="tab" data-tab="players">Players</div>
-                <div class="tab" data-tab="weeklies">Weeklies</div>
+                <div class="tab" data-tab="game-factors">游戏因子分析</div>
                 <div class="tab" data-tab="mutator-stats">突变因子统计</div>
                 <div class="tab" data-tab="custom-maps">自定义地图</div>
                 <div class="tab" data-tab="statistics">Statistics</div>
@@ -163,20 +163,51 @@
                     </div>
                 </div>
 
-                <!-- Weeklies 标签页 -->
-                <div class="tab-pane" id="weeklies">
-                    <div class="weekly-content">
-                        <div class="weekly-header">
-                            <h3>Weekly Mutation</h3>
+                <!-- 游戏因子分析 标签页 -->
+                <div class="tab-pane" id="game-factors">
+                    <div class="factors-content">
+                        <div class="factors-header">
+                            <h3>游戏因子分析</h3>
+                            <div class="game-selector">
+                                <label>选择游戏:</label>
+                                <select id="game-select">
+                                    <option value="">请选择一场游戏...</option>
+                                </select>
+                            </div>
                         </div>
-                        <div class="weekly-info">
-                            <div class="weekly-map">Map: <span id="weekly-map">Loading...</span></div>
-                            <div class="weekly-mutators">Mutators: <span id="weekly-mutators">Loading...</span></div>
+                        
+                        <div class="factors-visualization">
+                            <!-- 雷达图容器 -->
+                            <div class="chart-container">
+                                <canvas id="factors-radar-chart" width="400" height="400"></canvas>
+                            </div>
                         </div>
-                        <div class="weekly-stats">
-                            <div class="weekly-attempts">Attempts: <span id="weekly-attempts">0</span></div>
-                            <div class="weekly-wins">Wins: <span id="weekly-wins">0</span></div>
-                            <div class="weekly-winrate">Win Rate: <span id="weekly-winrate">0%</span></div>
+                        
+                        <div class="factors-details">
+                            <div class="factor-section">
+                                <h4>性能因子</h4>
+                                <div id="performance-factors" class="factor-list"></div>
+                            </div>
+                            
+                            <div class="factor-section">
+                                <h4>战斗因子</h4>
+                                <div id="combat-factors" class="factor-list"></div>
+                            </div>
+                            
+                            <div class="factor-section">
+                                <h4>协作因子</h4>
+                                <div id="cooperation-factors" class="factor-list"></div>
+                            </div>
+                            
+                            <div class="factor-section">
+                                <h4>难度因子</h4>
+                                <div id="difficulty-factors" class="factor-list"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="factors-comparison">
+                            <h4>与历史平均对比</h4>
+                            <div id="factors-comparison-chart" class="comparison-container"></div>
                         </div>
                     </div>
                 </div>
@@ -184,8 +215,47 @@
                 <!-- 突变因子统计 标签页 -->
                 <div class="tab-pane" id="mutator-stats">
                     <div class="mutator-stats-content">
-                        <h3>Mutator Statistics</h3>
-                        <div class="mutator-list" id="mutator-list"></div>
+                        <h3>突变因子统计分析</h3>
+                        
+                        <!-- 概览卡片 -->
+                        <div class="mutator-overview">
+                            <div class="overview-card">
+                                <div class="card-title">总游戏数</div>
+                                <div class="card-value" id="total-games">0</div>
+                            </div>
+                            <div class="overview-card">
+                                <div class="card-title">突变游戏数</div>
+                                <div class="card-value" id="mutation-games">0</div>
+                            </div>
+                            <div class="overview-card">
+                                <div class="card-title">突变游戏占比</div>
+                                <div class="card-value" id="mutation-percentage">0%</div>
+                            </div>
+                        </div>
+                        
+                        <!-- 突变因子列表 -->
+                        <div class="mutator-table-container">
+                            <table class="mutator-table" id="mutator-table">
+                                <thead>
+                                    <tr>
+                                        <th onclick="sortMutatorTable(0)">突变因子 ↕</th>
+                                        <th onclick="sortMutatorTable(1)">出现次数 ↕</th>
+                                        <th onclick="sortMutatorTable(2)">占比 ↕</th>
+                                        <th onclick="sortMutatorTable(3)">胜率 ↕</th>
+                                        <th onclick="sortMutatorTable(4)">平均时长 ↕</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="mutator-tbody">
+                                    <!-- 动态填充 -->
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <!-- 突变因子击杀统计 -->
+                        <h4>特殊单位击杀统计</h4>
+                        <div class="special-kills-grid" id="special-kills-grid">
+                            <!-- 动态填充 -->
+                        </div>
                     </div>
                 </div>
 
