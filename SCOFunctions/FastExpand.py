@@ -8,6 +8,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from SCOFunctions.MFilePath import innerPath
 from SCOFunctions.MLogging import Logger, catch_exceptions
 from SCOFunctions.Settings import Setting_manager as SM
+from SCOFunctions.MTranslation import translate
 
 logger = Logger('FAST', Logger.levels.INFO)
 
@@ -48,7 +49,7 @@ class FastExpandSelector(QtWidgets.QWidget):
         layout.addWidget(self.pic)
 
         # Set up the window
-        self.setWindowTitle(f"Fast Expand Hints")
+        self.setWindowTitle(translate("Fast Expand Hints"))
         self.setWindowIcon(QtGui.QIcon(innerPath('src/OverlayIcon.ico')))
         self.setWindowFlags(QtCore.Qt.FramelessWindowHint | QtCore.Qt.WindowStaysOnTopHint | QtCore.Qt.WindowDoesNotAcceptFocus
                             | QtCore.Qt.WindowTransparentForInput)
@@ -86,10 +87,10 @@ class FastExpandSelector(QtWidgets.QWidget):
             self.hotkeys.append(callback)
 
         # Add the Cancel option at the bottom
-        labelString += "NUM0 - None"
+        labelString += f"NUM0 - {translate('None')}"
 
         self.selectionText.setText(labelString)
-        self.title.setText("Choose your commander:")
+        self.title.setText(translate("Choose your commander:"))
 
     @catch_exceptions(logger)
     def generateRaceList(self):
@@ -114,11 +115,11 @@ class FastExpandSelector(QtWidgets.QWidget):
             self.hotkeys.append(callback)
 
         # Add the Cancel option at the bottom
-        labelString += "NUM0 - None"
+        labelString += f"NUM0 - {translate('None')}"
 
         # Add the label to the layout
         self.selectionText.setText(labelString)
-        self.title.setText("Choose enemy race:")
+        self.title.setText(translate("Choose enemy race:"))
 
     def showExpand(self):
         try:
@@ -145,7 +146,7 @@ class FastExpandSelector(QtWidgets.QWidget):
             pixmap = pixmap.scaled(self.width() - self.padding, self.height() - 41, QtCore.Qt.KeepAspectRatio)
             self.pic.setPixmap(pixmap)
             self.selectionText.hide()
-            self.title.setText("NUM0 - Close")
+            self.title.setText(f"NUM0 - {translate('Close')}")
             self.title.setStyleSheet("color:white; font-size: 18px")
         except Exception:
             logger.error(traceback.format_exc())

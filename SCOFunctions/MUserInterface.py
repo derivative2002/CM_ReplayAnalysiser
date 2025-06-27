@@ -164,7 +164,10 @@ class AmonUnitStats(QtWidgets.QWidget):
 
     def sort_units(self, caller=None):
         """ Sorts Amon's units """
-        trans_dict = {'Name': 'Name', 'Created': 'created', 'Lost': 'lost', 'Kills': 'kills', 'K/D': 'KD'}
+        trans_dict = {
+            'Name': 'Name', 'Created': 'created', 'Lost': 'lost', 'Kills': 'kills', 'K/D': 'KD',
+            '名称': 'Name', '创建': 'created', '损失': 'lost', '击杀': 'kills'
+        }
 
         if type(caller) is SortingQLabel:
             caller.activate()
@@ -395,14 +398,8 @@ class UnitStats(QtWidgets.QWidget):
 
         # Sort
         trans_dict = {
-            'Unit': 'Name',
-            'Created': 'created',
-            'Lost': 'lost',
-            'Lost%': 'lost_percent',
-            'Kills': 'kills',
-            'K/D': 'KD',
-            'Kills%': 'kill_percentage',
-            'Freq': 'made'
+            'Unit': 'Name', 'Created': 'created', 'Lost': 'lost', 'Lost%': 'lost_percent', 'Kills': 'kills', 'K/D': 'KD', 'Kills%': 'kill_percentage', 'Freq': 'made',
+            '单位': 'Name', '创建': 'created', '损失': 'lost', '损失%': 'lost_percent', '击杀': 'kills', '击杀%': 'kill_percentage', '频率': 'made'
         }
 
         if type(caller) is SortingQLabel:
@@ -411,7 +408,7 @@ class UnitStats(QtWidgets.QWidget):
         sort_by = SortingQLabel.active[self].value
         reverse = SortingQLabel.active[self].reverse
 
-        if sort_by == 'Unit':
+        if sort_by in ['Unit', '单位']:
             self.unit_data[which][commander] = {k: v for k, v in sorted(self.unit_data[which][commander].items(), reverse=reverse)}
         else:
             self.unit_data[which][commander] = {

@@ -44,7 +44,7 @@ from SCOFunctions.FastExpand import FastExpandSelector
 from SCOFunctions.MFilePath import innerPath, truePath
 from SCOFunctions.MLogging import Logger, catch_exceptions
 from SCOFunctions.MTheming import MColors, set_dark_theme
-from SCOFunctions.MTranslation import translate, translate_widget_recursive
+from SCOFunctions.MTranslation import translate, translate_widget_recursive, set_language
 from SCOFunctions.Settings import Setting_manager as SM
 
 logger = Logger('SCO', Logger.levels.INFO)
@@ -115,7 +115,6 @@ class UI_TabWidget(object):
         self.TAB_Games = Tabs.GameTab(self, TabWidget)
         self.TAB_Stats = Tabs.StatsTab(self)
         self.TAB_Links = Tabs.LinkTab(self)
-        self.TAB_Mutations = Tabs.MutationTab(TabWidget)
         self.TAB_MutatorStats = Tabs.MutatorStatsTab()
         self.TAB_CustomMaps = Tabs.CustomMapsTab()
 
@@ -123,8 +122,7 @@ class UI_TabWidget(object):
         TabWidget.addTab(self.TAB_Main, "Settings")
         TabWidget.addTab(self.TAB_Games, "Games")
         TabWidget.addTab(self.TAB_Players, "Players")
-        TabWidget.addTab(self.TAB_Mutations, "Weeklies")
-        TabWidget.addTab(self.TAB_MutatorStats, "突变因子统计")
+        TabWidget.addTab(self.TAB_MutatorStats, "自定义突变统计")
         TabWidget.addTab(self.TAB_CustomMaps, "自定义地图")
         TabWidget.addTab(self.TAB_Stats, "Statistics")
         TabWidget.addTab(self.TAB_Links, "Links")
@@ -158,7 +156,6 @@ class UI_TabWidget(object):
         translate_widget_recursive(self.TAB_Games)
         translate_widget_recursive(self.TAB_Stats)
         translate_widget_recursive(self.TAB_Links)
-        translate_widget_recursive(self.TAB_Mutations)
         translate_widget_recursive(self.TAB_MutatorStats)
         translate_widget_recursive(self.TAB_CustomMaps)
 
@@ -167,6 +164,9 @@ class UI_TabWidget(object):
         self.downloading = False
 
         SM.load_settings(truePath('Settings.json'))
+
+        # 设置语言
+        set_language(SM.settings.get('language', 'zh_CN'))
 
         # Check for multiple instances
         if SM.settings['check_for_multiple_instances'] and AF.isWindows():
@@ -392,6 +392,10 @@ class UI_TabWidget(object):
         self.TAB_Main.LA_CurrentReplayFolder.setText(SM.settings['account_folder'])
         self.TAB_Main.LA_ScreenshotLocation.setText(SM.settings['screenshot_folder'])
         self.TAB_Main.CH_ShowSession.setChecked(SM.settings['show_session'])
+
+        # 设置语言下拉框
+        language_index = {'zh_CN': 0, 'en_US': 1}.get(SM.settings.get('language', 'zh_CN'), 0)
+        self.TAB_Main.CB_Language.setCurrentIndex(language_index)
 
         self.TAB_Main.KEY_ShowHide.setKeySequence(QtGui.QKeySequence.fromString(SM.settings['hotkey_show/hide']))
         self.TAB_Main.KEY_Show.setKeySequence(QtGui.QKeySequence.fromString(SM.settings['hotkey_show']))
@@ -799,7 +803,8 @@ class UI_TabWidget(object):
         self.wait_ms(2000)
         self.TAB_Games.add_new_game_data(replay_dict)
         if self.CAnalysis is not None and replay_dict['mutators']:
-            self.TAB_Mutations.update_data(self.CAnalysis.get_weekly_data())
+            # Custom mutator data will be updated when mass analysis finishes
+            pass
 
     def save_playernotes_to_settings(self):
         """ Saves player notes from UI to settings dict"""
@@ -836,7 +841,6 @@ class UI_TabWidget(object):
         self.TAB_Stats.LA_Stats_Wait.deleteLater()
         self.TAB_Games.LA_Games_Wait.deleteLater()
         self.TAB_Stats.generate_stats()
-        self.TAB_Mutations.update_data(self.CAnalysis.get_weekly_data())
         
         # 更新突变因子统计数据
         self.TAB_MutatorStats.calculate_mutator_stats(self.CAnalysis.ReplayData)
@@ -913,6 +917,9 @@ class UI_TabWidget(object):
             if TabWidget.taskbar_progress is not None:
                 TabWidget.taskbar_progress.setValue(100)
                 TabWidget.taskbar_progress.hide()
+            
+            # Populate the factor analysis dropdown
+            self.TAB_Stats.populate_factor_analysis_games()
 
     def stop_full_analysis(self):
         if self.CAnalysis is not None:
@@ -974,6 +981,28 @@ class UI_TabWidget(object):
         """ Changes UI theme between dark and light """
         SM.settings['dark_theme'] = self.TAB_Main.CH_DarkTheme.isChecked()
         set_dark_theme(self, app, TabWidget, APPVERSION)
+
+    def change_language(self):
+        """ Changes interface language """
+        language_map = {0: 'zh_CN', 1: 'en_US'}
+        selected_index = self.TAB_Main.CB_Language.currentIndex()
+        new_language = language_map.get(selected_index, 'zh_CN')
+        
+        if SM.settings.get('language', 'zh_CN') != new_language:
+            SM.settings['language'] = new_language
+            set_language(new_language)
+            
+            # 重新应用翻译到整个界面
+            self.apply_translation(TabWidget)
+            
+            # 发送语言切换事件到悬浮窗
+            MF.sendEvent({'languageEvent': True, 'language': new_language})
+            
+            # 保存设置
+            SM.save_settings()
+            
+            # 提示需要重启以完全应用语言更改
+            self.sendInfoMessage(translate('Language changed. Some texts may require restart to update.'))
 
     def redo_full_analysis(self):
         """ Redo full analysis from scratch """

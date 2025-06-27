@@ -96,6 +96,8 @@ function connect_to_socket() {
             initColorsDuration(data)
         } else if (data['playerEvent'] != null) {
             showHidePlayerWinrate(data)
+        } else if (data['languageEvent'] != null) {
+            setLanguage(data['language'])
         } else {
             console.log('unidentified message')
         }
@@ -143,17 +145,17 @@ function playerWinrate(dat) {
     for (let [key, value] of Object.entries(dat['data'])) {
         // no data ([None])
         if ((value.length == 1) && (value[0] == null)) {
-            text += 'No games played with <span class="player_stat">' + key + '</span>'
+            text += t('No games played with') + ' <span class="player_stat">' + key + '</span>'
 
             // no winrate data but with a player note ([None, note])
         } else if ((value.length == 2) && (value[0] == null)) {
-            text += 'No games played with <span class="player_stat">' + key + '</span><br>' + value[1]
+            text += t('No games played with') + ' <span class="player_stat">' + key + '</span><br>' + value[1]
 
             // winrate data ([wins, losses, apm, commander, frequency, kills, date])
         } else if (value.length >= 7) {
             let total_games = value[0] + value[1];
-            text += 'You played ' + total_games + ' games with <span class="player_stat">' + key + '</span>';
-            text += ' (' + Math.round(100 * value[0] / total_games) + '% winrate | ' + Math.round(100 * value[5]) + '% kills | ' + value[2] + ' APM)<br>Last game played together: ' + value[6]
+            text += t('You played') + ' ' + total_games + ' ' + t('games with') + ' <span class="player_stat">' + key + '</span>';
+            text += ' (' + Math.round(100 * value[0] / total_games) + '% ' + t('winrate') + ' | ' + Math.round(100 * value[5]) + '% ' + t('kills') + ' | ' + value[2] + ' ' + t('APM') + ')<br>' + t('Last game played together:') + ' ' + value[6]
         }
         // winrate data and player note ([wins, losses, apm, commander, frequency, kills,  date, note])
         if (value.length == 8) {
@@ -174,7 +176,10 @@ function playerWinrate(dat) {
 function initColorsDuration(data) {
     setColors(data['colors'][0], data['colors'][1], data['colors'][2], data['colors'][3]);
     DURATION = data['duration'];
-    show_charts = data['show_charts']
+    show_charts = data['show_charts'];
+    if (data['language']) {
+        setLanguage(data['language']);
+    }
 }
 
 
@@ -221,10 +226,10 @@ function uploadStatus(result) {
 
     if (result.includes('Success')) {
         loader.style.color = 'rgba(0, 150, 0, 1)';
-        loader.innerHTML = 'Replay uploaded successfully!';
+        loader.innerHTML = t('Replay uploaded successfully!');
     } else {
         loader.style.color = 'rgba(225, 0, 0, 1)';
-        loader.innerHTML = 'Replay not uploaded!<br>' + result;
+        loader.innerHTML = t('Replay not uploaded!') + '<br>' + result;
     };
 }
 
@@ -301,8 +306,8 @@ function fillCommander(el, commander, commander_level) {
     let addition = '';
     if (commander == null) return;
     if (commander_level < 15) addition = '{' + commander_level + '}';
-    if (el == 'com1') fill(el, commander + ' ' + addition);
-    else fill(el, addition + ' ' + commander)
+    if (el == 'com1') fill(el, t(commander) + ' ' + addition);
+    else fill(el, addition + ' ' + t(commander))
 }
 
 
@@ -334,7 +339,7 @@ function postGameStats(data, showing = false) {
         fill('result', data['result'] + '!');
     } else {
         fill('mutators', '<span id="resultsp">' + data['result'] + '!</span>');
-        fill('result', 'kills');
+        fill('result', t('kills'));
     }
 
     //BG images
@@ -358,7 +363,7 @@ function postGameStats(data, showing = false) {
     bonus_text = ` <span style="color: #FFE670">${bonus_text}</span>`;
 
     fill('name1', data['main']);
-    fill('map', `${data['map_name']}&nbsp;&nbsp;(${format_length(data['length'])}) ${bonus_text}`);
+    fill('map', `${t(data['map_name'])}&nbsp;&nbsp;(${format_length(data['length'])}) ${bonus_text}`);
     fill('name2', data['ally']);
     fillCommander('com1', data['mainCommander'], data['mainCommanderLevel'])
     fillCommander('com2', data['allyCommander'], data['allyCommanderLevel'])
@@ -372,26 +377,26 @@ function postGameStats(data, showing = false) {
     }
 
     if (data['Victory'] != null) {
-        fill('session', 'Session: ' + data['Victory'] + ' wins/' + (data['Victory'] + data['Defeat']) + ' games');
+        fill('session', t('Session:') + ' ' + data['Victory'] + ' ' + t('wins') + '/' + (data['Victory'] + data['Defeat']) + ' ' + t('games'));
     } else {
         fill('session', '');
     };
 
     if (data['Commander'] != null) {
-        fill('rng', 'Randomized commander: ' + data['Commander'] + ' (' + data['Prestige'] + ')');
+        fill('rng', t('Randomized commander:') + ' ' + t(data['Commander']) + ' (' + data['Prestige'] + ')');
     } else {
         fill('rng', '');
     };
 
     // difficulty
     if ((data['weekly'] == true)) {
-        fill('brutal', 'Weekly (' + data['difficulty'] + ')')
+        fill('brutal', t('Weekly') + ' (' + t(data['difficulty']) + ')')
     } else if ((data['extension'] > 0) && (data['mutators'] != null)) {
-        fill('brutal', 'Custom (' + data['difficulty'] + ')')
+        fill('brutal', t('Custom') + ' (' + t(data['difficulty']) + ')')
     } else if (data['B+'] > 0) {
-        fill('brutal', 'Brutal+' + data['B+'])
+        fill('brutal', t('Brutal') + '+' + data['B+'])
     } else {
-        fill('brutal', data['difficulty'])
+        fill('brutal', t(data['difficulty']))
     };
 
     // kill counts
@@ -439,7 +444,7 @@ function postGameStats(data, showing = false) {
     fillmasteries('CMmastery2', data['allyMasteries'], data['allyCommander']);
     fillunits('CMunits2', data['allyUnits'], data['allyCommander'], gP2Color, totalkills);
 
-    fill('CMname3', 'Amon');
+    fill('CMname3', t('Amon'));
     fillunits('CMunits3', data['amon_units'], null, 'red', totalkills);
 
     // add a tiny delay before updating. This can smooth out things on some systems.

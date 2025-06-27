@@ -37,6 +37,7 @@ class CSettings:
             'dark_theme': True,
             'fast_expand': False, 
             'minimize_to_tray': True,
+            'language': 'zh_CN',
             'account_folder': None,
             'screenshot_folder': None,
             'hotkey_show/hide': 'Ctrl+Shift+*',
@@ -106,7 +107,9 @@ class CSettings:
         """ Returns current settings that can be safely saved into logs"""
         out = self.settings.copy()
         out['aom_secret_key'] = "set" if out['aom_secret_key'] else None
-        del out['rng_choices']
+        # Only delete 'rng_choices' if it exists (legacy key from older versions)
+        if 'rng_choices' in out:
+            del out['rng_choices']
         del out['player_notes']
         return out
 

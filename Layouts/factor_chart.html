@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Factor Analysis Radar Chart</title>
+    <script src="chart.min.js"></script>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            background-color: transparent;
+            color: #E0E0E0; /* Light text color for dark theme */
+            font-family: Arial, sans-serif;
+        }
+        canvas {
+            background-color: transparent;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="radarChart"></canvas>
+    <script>
+        let radarChart;
+        const ctx = document.getElementById('radarChart').getContext('2d');
+
+        function updateChart(data) {
+            if (radarChart) {
+                radarChart.destroy();
+            }
+
+            const chartConfig = {
+                type: 'radar',
+                data: {
+                    labels: data.labels,
+                    datasets: [
+                        {
+                            label: data.p1_name,
+                            data: data.p1_data,
+                            backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                            borderColor: 'rgba(54, 162, 235, 1)',
+                            pointBackgroundColor: 'rgba(54, 162, 235, 1)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: data.p2_name,
+                            data: data.p2_data,
+                            backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                            borderColor: 'rgba(255, 99, 132, 1)',
+                            pointBackgroundColor: 'rgba(255, 99, 132, 1)',
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                color: '#E0E0E0' 
+                            }
+                        }
+                    },
+                    scales: {
+                        r: {
+                            angleLines: {
+                                color: 'rgba(255, 255, 255, 0.2)'
+                            },
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.2)'
+                            },
+                            pointLabels: {
+                                color: '#E0E0E0',
+                                font: {
+                                    size: 12
+                                }
+                            },
+                            suggestedMin: 0,
+                            suggestedMax: 100,
+                             ticks: {
+                                backdropColor: 'transparent',
+                                color: '#E0E0E0'
+                            }
+                        }
+                    }
+                }
+            };
+            
+            radarChart = new Chart(ctx, chartConfig);
+        }
+    </script>
+</body>
+</html> 

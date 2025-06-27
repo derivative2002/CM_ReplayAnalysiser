@@ -29,7 +29,7 @@ from SCOFunctions.Settings import Setting_manager as SM
 OverlayMessages = []  # Storage for all messages
 lock = threading.Lock()
 logger = Logger('MAIN', Logger.levels.INFO)
-initMessage = {'initEvent': True, 'colors': ['null', 'null', 'null', 'null'], 'duration': 60, 'show_charts': True}
+initMessage = {'initEvent': True, 'colors': ['null', 'null', 'null', 'null'], 'duration': 60, 'show_charts': True, 'language': 'zh_CN'}
 ReplayPosition = 0
 AllReplays = dict()
 player_winrate_data = dict()
@@ -54,6 +54,7 @@ def update_init_message() -> None:
     initMessage['colors'] = [SM.settings['color_player1'], SM.settings['color_player2'], SM.settings['color_amon'], SM.settings['color_mastery']]
     initMessage['duration'] = SM.settings['duration']
     initMessage['show_charts'] = SM.settings['show_charts']
+    initMessage['language'] = SM.settings.get('language', 'zh_CN')
 
 
 def sendEvent(event: Dict[str, Any], raw: bool = False) -> None:
@@ -94,6 +95,11 @@ def sendEvent(event: Dict[str, Any], raw: bool = False) -> None:
         data = json.dumps(event)
         logger.info(f'Sending player event with JS: {event}')
         WEBPAGE.runJavaScript(f"showHidePlayerWinrate({data})")
+
+    elif event.get('languageEvent') is not None:
+        data = json.dumps(event)
+        logger.info(f'Sending language event with JS: {event}')
+        WEBPAGE.runJavaScript(f"setLanguage('{event['language']}')")
 
 
 def resend_init_message() -> None:

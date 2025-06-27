@@ -11,6 +11,7 @@ from SCOFunctions.MFilePath import innerPath
 from SCOFunctions.MLogging import Logger, catch_exceptions
 from SCOFunctions.MTheming import MColors
 from SCOFunctions.Settings import Setting_manager as SM
+from SCOFunctions.MTranslation import translate
 
 logger = Logger('TABM', Logger.levels.INFO)
 
@@ -24,40 +25,52 @@ class MainTab(QtWidgets.QWidget):
         # Start with Windows
         self.CH_StartWithWindows = QtWidgets.QCheckBox(self)
         self.CH_StartWithWindows.setGeometry(QtCore.QRect(20, ch_distance, 230, 17))
-        self.CH_StartWithWindows.setText("Start with Windows")
-        self.CH_StartWithWindows.setToolTip("The app will start automatically with Windows")
+        self.CH_StartWithWindows.setText(translate("Start with Windows"))
+        self.CH_StartWithWindows.setToolTip(translate("The app will start automatically with Windows"))
 
         # Start minimized
         self.CH_StartMinimized = QtWidgets.QCheckBox(self)
         self.CH_StartMinimized.setGeometry(QtCore.QRect(20, 2 * ch_distance, 230, 17))
-        self.CH_StartMinimized.setText("Start minimized")
-        self.CH_StartMinimized.setToolTip("The app will start minimized")
+        self.CH_StartMinimized.setText(translate("Start minimized"))
+        self.CH_StartMinimized.setToolTip(translate("The app will start minimized"))
 
         # Enable logging
         self.CH_EnableLogging = QtWidgets.QCheckBox(self)
         self.CH_EnableLogging.setGeometry(QtCore.QRect(20, 4 * ch_distance, 230, 17))
-        self.CH_EnableLogging.setText("Enable logging")
-        self.CH_EnableLogging.setToolTip(f"App logs will be saved into a text file")
+        self.CH_EnableLogging.setText(translate("Enable logging"))
+        self.CH_EnableLogging.setToolTip(translate("App logs will be saved into a text file"))
 
         # Show session hidden
         self.CH_ShowSession = QtWidgets.QCheckBox(self)
         self.CH_ShowSession.setGeometry(QtCore.QRect(20, 5 * ch_distance, 300, 17))
-        self.CH_ShowSession.setText("Show session stats")
-        self.CH_ShowSession.setToolTip("Shows how many games you played and won in the current session on the overlay")
+        self.CH_ShowSession.setText(translate("Show session stats"))
+        self.CH_ShowSession.setToolTip(translate("Shows how many games you played and won in the current session on the overlay"))
 
         # Show player winrate and notes
         self.CH_ShowPlayerWinrates = QtWidgets.QCheckBox(self)
         self.CH_ShowPlayerWinrates.setGeometry(QtCore.QRect(20, 6 * ch_distance, 230, 17))
-        self.CH_ShowPlayerWinrates.setText("Show player winrates and notes")
-        self.CH_ShowPlayerWinrates.setToolTip(
+        self.CH_ShowPlayerWinrates.setText(translate("Show player winrates and notes"))
+        self.CH_ShowPlayerWinrates.setToolTip(translate(
             "The number of games and winrate you had with your ally will be shown when a game starts.\nPlayer note will show as well if specified. Requires restart to enable."
-        )
+        ))
+
+        # Language selection
+        self.LA_Language = QtWidgets.QLabel(self)
+        self.LA_Language.setGeometry(QtCore.QRect(20, 7 * ch_distance, 60, 17))
+        self.LA_Language.setText(translate("Language"))
+        self.LA_Language.setToolTip(translate("Select interface language"))
+        
+        self.CB_Language = QtWidgets.QComboBox(self)
+        self.CB_Language.setGeometry(QtCore.QRect(85, 7 * ch_distance - 2, 120, 22))
+        self.CB_Language.addItems(["简体中文", "English"])
+        self.CB_Language.setToolTip("Select interface language / 选择界面语言")
+        self.CB_Language.currentIndexChanged.connect(self.p.change_language)
 
         # Mnimized when clicked
         self.CH_MinimizeToTray = QtWidgets.QCheckBox(self)
         self.CH_MinimizeToTray.setGeometry(QtCore.QRect(20, 3 * ch_distance, 300, 17))
-        self.CH_MinimizeToTray.setText("Minimize to tray")
-        self.CH_MinimizeToTray.setToolTip("On closing the app will minimize to tray. The app can be closed there.")
+        self.CH_MinimizeToTray.setText(translate("Minimize to tray"))
+        self.CH_MinimizeToTray.setToolTip(translate("On closing the app will minimize to tray. The app can be closed there."))
 
         # Duration
         self.SP_Duration = QtWidgets.QSpinBox(self)
@@ -65,23 +78,25 @@ class MainTab(QtWidgets.QWidget):
 
         self.LA_Duration = QtWidgets.QLabel(self)
         self.LA_Duration.setGeometry(QtCore.QRect(300, 20, 191, 21))
-        self.LA_Duration.setText("Duration")
-        self.LA_Duration.setToolTip("How long the overlay will show after a new game is analysed.")
+        self.LA_Duration.setText(translate("Duration"))
+        self.LA_Duration.setToolTip(translate("How long the overlay will show after a new game is analysed."))
 
         # Monitor
         self.SP_Monitor = QtWidgets.QSpinBox(self)
         self.SP_Monitor.setGeometry(QtCore.QRect(360, 20, 42, 22))
         self.SP_Monitor.setMinimum(1)
-        self.SP_Monitor.setToolTip("Determines on which monitor the overlay will be shown")
+        self.SP_Monitor.setToolTip(translate("Determines on which monitor the overlay will be shown"))
 
         self.LA_Monitor = QtWidgets.QLabel(self)
         self.LA_Monitor.setGeometry(QtCore.QRect(410, 20, 47, 20))
-        self.LA_Monitor.setText("Monitor")
-        self.LA_Monitor.setToolTip("Determines on which monitor the overlay will be shown")
+        self.LA_Monitor.setText(translate("Monitor"))
+        self.LA_Monitor.setToolTip(translate("Determines on which monitor the overlay will be shown"))
 
         # Charts
         self.CH_ShowCharts = QtWidgets.QCheckBox(self)
         self.CH_ShowCharts.setGeometry(QtCore.QRect(250, 3 * ch_distance, 300, 17))
+        self.CH_ShowCharts.setText(translate("Show charts"))
+        self.CH_ShowCharts.setToolTip(translate("Show charts on overlay"))
         self.CH_ShowCharts.setText("Show charts")
         self.CH_ShowCharts.setToolTip("Show charts on overlay")
         self.CH_ShowCharts.clicked.connect(self.p.show_charts)
@@ -182,72 +197,73 @@ class MainTab(QtWidgets.QWidget):
         self.LA_Hotkeys.setGeometry(QtCore.QRect(0, 10, 411, 20))
         self.LA_Hotkeys.setStyleSheet("font-weight: bold")
         self.LA_Hotkeys.setAlignment(QtCore.Qt.AlignCenter)
-        self.LA_Hotkeys.setText("Hotkeys")
+        self.LA_Hotkeys.setText(translate("Hotkeys"))
 
         # Show/hide
         self.BT_ShowHide = QtWidgets.QPushButton(self.FR_HotkeyFrame)
         self.BT_ShowHide.setGeometry(QtCore.QRect(19, 50, 115, 25))
-        self.BT_ShowHide.setText("Show / Hide")
+        self.BT_ShowHide.setText(translate("Show / Hide"))
         self.BT_ShowHide.clicked.connect(MF.keyboard_SHOWHIDE)
 
         self.KEY_ShowHide = MUI.CustomKeySequenceEdit(self.FR_HotkeyFrame)
         self.KEY_ShowHide.setGeometry(QtCore.QRect(20, 80, 113, 20))
-        self.KEY_ShowHide.setToolTip('The key for both showing and hiding the overlay')
+        self.KEY_ShowHide.setToolTip(translate('The key for both showing and hiding the overlay'))
         self.KEY_ShowHide.keySequenceChanged.connect(self.p.hotkey_changed)
 
         # Show
         self.BT_Show = QtWidgets.QPushButton(self.FR_HotkeyFrame)
         self.BT_Show.setGeometry(QtCore.QRect(149, 50, 115, 25))
-        self.BT_Show.setText("Show")
+        self.BT_Show.setText(translate("Show"))
         self.BT_Show.clicked.connect(MF.keyboard_SHOW)
 
         self.KEY_Show = MUI.CustomKeySequenceEdit(self.FR_HotkeyFrame)
         self.KEY_Show.setGeometry(QtCore.QRect(150, 80, 113, 20))
-        self.KEY_Show.setToolTip('The key for just showing the overlay')
+        self.KEY_Show.setToolTip(translate('The key for just showing the overlay'))
         self.KEY_Show.keySequenceChanged.connect(self.p.hotkey_changed)
 
         # Hide
         self.BT_Hide = QtWidgets.QPushButton(self.FR_HotkeyFrame)
         self.BT_Hide.setGeometry(QtCore.QRect(279, 50, 115, 25))
-        self.BT_Hide.setText("Hide")
+        self.BT_Hide.setText(translate("Hide"))
         self.BT_Hide.clicked.connect(MF.keyboard_HIDE)
 
         self.KEY_Hide = MUI.CustomKeySequenceEdit(self.FR_HotkeyFrame)
         self.KEY_Hide.setGeometry(QtCore.QRect(280, 80, 113, 20))
-        self.KEY_Hide.setToolTip('The key for just hiding the overlay')
+        self.KEY_Hide.setToolTip(translate('The key for just hiding the overlay'))
         self.KEY_Hide.keySequenceChanged.connect(self.p.hotkey_changed)
 
         # Newer
         self.BT_Newer = QtWidgets.QPushButton(self.FR_HotkeyFrame)
         self.BT_Newer.setGeometry(QtCore.QRect(19, 120, 115, 25))
-        self.BT_Newer.setText("Show newer replay")
+        self.BT_Newer.setText(translate("Show newer replay"))
         self.BT_Newer.clicked.connect(MF.keyboard_NEWER)
 
         self.KEY_Newer = MUI.CustomKeySequenceEdit(self.FR_HotkeyFrame)
         self.KEY_Newer.setGeometry(QtCore.QRect(20, 150, 113, 20))
-        self.KEY_Newer.setToolTip('The key for showing a newer replay than is currently displayed')
+        self.KEY_Newer.setToolTip(translate('The key for showing a newer replay than is currently displayed'))
         self.KEY_Newer.keySequenceChanged.connect(self.p.hotkey_changed)
 
         # Older
         self.BT_Older = QtWidgets.QPushButton(self.FR_HotkeyFrame)
         self.BT_Older.setGeometry(QtCore.QRect(149, 120, 115, 25))
-        self.BT_Older.setText("Show older replay")
+        self.BT_Older.setText(translate("Show older replay"))
         self.BT_Older.clicked.connect(MF.keyboard_OLDER)
 
         self.KEY_Older = MUI.CustomKeySequenceEdit(self.FR_HotkeyFrame)
         self.KEY_Older.setGeometry(QtCore.QRect(150, 150, 113, 20))
-        self.KEY_Older.setToolTip('The key for showing an older replay than is currently displayed')
+        self.KEY_Older.setToolTip(translate('The key for showing an older replay than is currently displayed'))
         self.KEY_Older.keySequenceChanged.connect(self.p.hotkey_changed)
 
         # Winrates
         self.BT_Winrates = QtWidgets.QPushButton(self.FR_HotkeyFrame)
         self.BT_Winrates.setGeometry(QtCore.QRect(279, 120, 115, 25))
-        self.BT_Winrates.setText("Show player info")
+        self.BT_Winrates.setText(translate("Show player info"))
         self.BT_Winrates.clicked.connect(MF.keyboard_PLAYERWINRATES)
+        self.BT_Winrates.setToolTip(translate('The key for showing the last player winrates and notes'))
 
         self.KEY_Winrates = MUI.CustomKeySequenceEdit(self.FR_HotkeyFrame)
         self.KEY_Winrates.setGeometry(QtCore.QRect(280, 150, 113, 20))
-        self.KEY_Winrates.setToolTip('The key for showing the last player winrates and notes')
+        self.KEY_Winrates.setToolTip(translate('The key for showing the last player winrates and notes'))
         self.KEY_Winrates.keySequenceChanged.connect(self.p.hotkey_changed)
 
         # Colors

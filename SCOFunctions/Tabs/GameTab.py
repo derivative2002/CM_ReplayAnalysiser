@@ -4,6 +4,7 @@ import SCOFunctions.MUserInterface as MUI
 from PyQt5 import QtCore, QtGui, QtWidgets
 from SCOFunctions.MLogging import Logger
 from SCOFunctions.Settings import Setting_manager as SM
+from SCOFunctions.MTranslation import translate
 
 logger = Logger('GT', Logger.levels.INFO)
 
@@ -47,42 +48,42 @@ class GameTab(QtWidgets.QWidget):
         self.LA_Difficulty = QtWidgets.QLabel(self.WD_RecentGamesHeading)
         self.LA_Difficulty.setGeometry(QtCore.QRect(580, 0, 81, 31))
         self.LA_Difficulty.setAlignment(QtCore.Qt.AlignCenter)
-        self.LA_Difficulty.setText("Difficulty")
+        self.LA_Difficulty.setText(translate("Difficulty"))
 
         self.LA_Player2 = QtWidgets.QLabel(self.WD_RecentGamesHeading)
         self.LA_Player2.setGeometry(QtCore.QRect(305, 0, 200, 31))
         self.LA_Player2.setAlignment(QtCore.Qt.AlignCenter)
-        self.LA_Player2.setText("Player 2")
+        self.LA_Player2.setText(translate("Player 2"))
 
         self.LA_Enemy = QtWidgets.QLabel(self.WD_RecentGamesHeading)
         self.LA_Enemy.setGeometry(QtCore.QRect(485, 0, 41, 31))
         self.LA_Enemy.setAlignment(QtCore.Qt.AlignCenter)
-        self.LA_Enemy.setText("Enemy")
+        self.LA_Enemy.setText(translate("Enemy"))
 
         self.LA_Length = QtWidgets.QLabel(self.WD_RecentGamesHeading)
         self.LA_Length.setGeometry(QtCore.QRect(525, 0, 71, 31))
         self.LA_Length.setAlignment(QtCore.Qt.AlignCenter)
-        self.LA_Length.setText("Length")
+        self.LA_Length.setText(translate("Length"))
 
         self.LA_Map = QtWidgets.QLabel(self.WD_RecentGamesHeading)
         self.LA_Map.setGeometry(QtCore.QRect(30, 0, 125, 31))
         self.LA_Map.setAlignment(QtCore.Qt.AlignLeading | QtCore.Qt.AlignLeft | QtCore.Qt.AlignVCenter)
-        self.LA_Map.setText("Map")
+        self.LA_Map.setText(translate("Map"))
 
         self.LA_Player1 = QtWidgets.QLabel(self.WD_RecentGamesHeading)
         self.LA_Player1.setGeometry(QtCore.QRect(170, 0, 200, 31))
         self.LA_Player1.setAlignment(QtCore.Qt.AlignCenter)
-        self.LA_Player1.setText("Player 1")
+        self.LA_Player1.setText(translate("Player 1"))
 
         self.LA_Result = QtWidgets.QLabel(self.WD_RecentGamesHeading)
         self.LA_Result.setGeometry(QtCore.QRect(145, 0, 50, 31))
         self.LA_Result.setAlignment(QtCore.Qt.AlignCenter)
-        self.LA_Result.setText("Result")
+        self.LA_Result.setText(translate("Result"))
 
         self.LA_Date = QtWidgets.QLabel(self.WD_RecentGamesHeading)
         self.LA_Date.setGeometry(QtCore.QRect(655, 0, 101, 31))
         self.LA_Date.setAlignment(QtCore.Qt.AlignCenter)
-        self.LA_Date.setText("Time")
+        self.LA_Date.setText(translate("Time"))
 
         self.GameTabLine = MUI.Cline(self.WD_RecentGamesHeading)
         self.GameTabLine.setGeometry(QtCore.QRect(20, 30, 921, 1))

@@ -1154,6 +1154,140 @@ def analyse_parsed_replay(filepath, replay, main_player_handles=None, print_kill
     return replay_report_dict
 
 
+def extract_difficulty(data):
+    """从回放数据中提取游戏难度 (1-5)"""
+    # 移植自 real_data_server.py
+    if 'difficulty' in data:
+        diff = data['difficulty']
+        if isinstance(diff, tuple) and len(diff) > 0:
+            diff_name = diff[0]
+            difficulty_map = {'Casual': 1, 'Normal': 2, 'Hard': 3, 'Brutal': 4, 'Brutal+': 5}
+            return difficulty_map.get(diff_name, 4)
+        elif isinstance(diff, str):
+            difficulty_map = {'Casual': 1, 'Normal': 2, 'Hard': 3, 'Brutal': 4, 'Brutal+': 5}
+            return difficulty_map.get(diff, 4)
+    
+    # 检查是否有Brutal+信息
+    if data.get('B+'):
+        return 5
+    
+    # 在 analyse_parsed_replay 中 'difficulty' 字段可能已经是 'Brutal'
+    if data.get('difficulty') == 'Brutal':
+        return 4
+    if data.get('difficulty') == 'Hard':
+        return 3
+    if data.get('difficulty') == 'Normal':
+        return 2
+    if data.get('difficulty') == 'Casual':
+        return 1
+
+    return 4  # 默认Brutal
+
+
+def calculate_resource_efficiency(player_data):
+    """计算资源效率"""
+    # 简化计算：基于APM和游戏结果 (移植自 real_data_server.py)
+    base_score = 50
+    if player_data.get('result') == 'Win':
+        base_score += 20
+    apm = player_data.get('apm', 100)
+    return min(100, base_score + (apm / 10))
+
+
+def calculate_unit_control_score(player_data):
+    """计算单位控制评分"""
+    # 基于APM和击杀数 (移植自 real_data_server.py)
+    apm = player_data.get('apm', 100)
+    kills = player_data.get('kills', 0)
+    return min(100, (apm / 2) + (kills / 10))
+
+
+def calculate_sync_score(replay_data):
+    """计算协同作战评分"""
+    # 简化：基于游戏结果和时长 (移植自 real_data_server.py)
+    base_score = 50
+    if replay_data.get('result') == 'Victory':
+        base_score += 30
+    # 游戏时长越接近20分钟，协同分越高
+    game_length = replay_data.get('length', 1200)
+    if 900 <= game_length <= 1500:  # 15-25分钟
+        base_score += 20
+    return min(100, base_score)
+
+
+def extract_game_factors(replay_data, game_id):
+    """从回放数据中提取游戏因子 (移植自 real_data_server.py)"""
+    factors = {
+        'game_id': game_id,
+        'map_factors': {
+            'map_name': replay_data.get('map_name', 'Unknown'),
+            'map_size': 'medium',
+            'enemy_composition': replay_data.get('comp', 'Mixed'),
+            'objective_type': 'standard'
+        },
+        'performance_factors': {},
+        'combat_factors': {
+            'total_kills': 0,
+            'kill_death_ratio': 0,
+            'damage_dealt': 0,
+            'damage_taken': 0
+        },
+        'cooperation_factors': {
+            'sync_score': 0,
+            'resource_sharing': 0,
+            'combined_attacks': 0
+        },
+        'difficulty_factors': {
+            'base_difficulty': extract_difficulty(replay_data),
+            'mutators': replay_data.get('mutators', []),
+            'adjusted_difficulty': extract_difficulty(replay_data)
+        },
+        'time_factors': {
+            'game_length': replay_data.get('length', 0),
+            'early_game_score': 0,
+            'mid_game_score': 0,
+            'late_game_score': 0
+        }
+    }
+
+    # 提取玩家数据
+    players_data = []
+    # main player
+    players_data.append({
+        'name': replay_data.get('main'),
+        'commander': replay_data.get('mainCommander'),
+        'apm': replay_data.get('mainAPM'),
+        'kills': replay_data.get('mainkills'),
+        'result': 'Win' if replay_data.get('result') == 'Victory' else 'Loss'
+    })
+    # ally player
+    players_data.append({
+        'name': replay_data.get('ally'),
+        'commander': replay_data.get('allyCommander'),
+        'apm': replay_data.get('allyAPM'),
+        'kills': replay_data.get('allykills'),
+        'result': 'Win' if replay_data.get('result') == 'Victory' else 'Loss'
+    })
+
+    for i, player in enumerate(players_data):
+        player_key = f'player{i+1}'
+        factors['performance_factors'][player_key] = {
+            'name': player.get('name', f'Player{i+1}'),
+            'commander': player.get('commander', 'Unknown'),
+            'apm': player.get('apm', 0),
+            'resource_efficiency': calculate_resource_efficiency(player),
+            'unit_control_score': calculate_unit_control_score(player)
+        }
+        
+        # 累加战斗因子
+        factors['combat_factors']['total_kills'] += player.get('kills', 0)
+
+    # 计算协作分数
+    factors['cooperation_factors']['sync_score'] = calculate_sync_score(replay_data)
+    
+    return factors
+
+
 def parse_and_analyse_replay(filepath, main_player_handles=None):
     """ Analyses the replay and returns the analysis"""
     logger.info(f'Analysing: {filepath}')
