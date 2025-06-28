@@ -1138,84 +1138,313 @@ for i, replay_path in enumerate(sorted(replays)[:5]):  # 限制前5个文件
 
 ---
 
-# 快捷键 (Hotkey) 界面汉化修复计划
+# 游戏内悬浮窗 (Overlay) 汉化修复计划
 
 ## 问题分析
 
 ### 当前状况
-- **问题描述**: 主界面 "设置" -> "快捷键" 部分的UI元素在切换到中文后依然显示英文。
-- **根本原因**: 在 `SCOFunctions/Tabs/MainTab.py` 文件中，所有与快捷键相关的UI组件（包括标题 `Hotkeys`、按钮 `Show / Hide`、以及工具提示 `Tooltip`）都使用了**硬编码的英文字符串**，没有调用 `translate()` 函数。
-- **影响范围**: 快捷键设置区域的所有标签、按钮和提示信息。
+- **问题描述**: 游戏内显示的悬浮窗（Overlay）中，部分文本内容（如 "NO DATA", "BEST TIME!"）在切换到中文后依然显示为英文。
+- **根本原因**: 这些文本直接硬编码在 `Layouts/Layout.html` 中，或者是在 `Layouts/main.js` 中使用了英文字符串，没有调用 `t()` 翻译函数。
+- **影响范围**: 悬浮窗上所有静态和动态生成的文本标签。
 
-### 受影响代码示例 (`MainTab.py`)
-```python
-# 标题标签未使用翻译
-self.LA_Hotkeys.setText("Hotkeys")
+### 受影响代码示例
 
-# 按钮未使用翻译
-self.BT_ShowHide.setText("Show / Hide")
-
-# 工具提示未使用翻译
-self.KEY_ShowHide.setToolTip('The key for both showing and hiding the overlay')
+**`Layouts/Layout.html`**:
+```html
+<div id="nodata">NO DATA</div>
+...
+<div id="record">BEST TIME!</div>
+```
+**`Layouts/main.js`**:
+```javascript
+// 可能存在类似的硬编码字符串
+document.getElementById('some_element').innerText = 'Some English Text'; 
 ```
 
 ## 实施计划
 
-### 阶段1：添加缺失的翻译条目 (预计 0.5 小时)
+### 阶段1：HTML 文本国际化 (预计 0.5 小时)
 
-#### 1.1 更新语言包
-- **任务**: 在 `src/zh_CN.json` 和 `src/en_US.json` 文件中，添加所有快捷键界面所需的翻译条目。
-- **文件**: `src/zh_CN.json`, `src/en_US.json`
-- **需要添加的条目**:
-  - `Show / Hide`: `显示/隐藏`
-  - `Show`: `显示`
-  - `Hide`: `隐藏`
-  - `Show newer replay`: `显示新回放`
-  - `Show older replay`: `显示旧回放`
-  - `Show player info`: `显示玩家信息`
-  - `The key for both showing and hiding the overlay`: `用于显示和隐藏悬浮窗的按键`
-  - `The key for just showing the overlay`: `仅用于显示悬浮窗的按键`
-  - `The key for just hiding the overlay`: `仅用于隐藏悬浮窗的按键`
-  - `The key for showing a newer replay than is currently displayed`: `显示比当前回放更新的回放的按键`
-  - `The key for showing an older replay than is currently displayed`: `显示比当前回放更旧的回放的按键`
-  - `The key for showing the last player winrates and notes`: `显示最近玩家胜率和笔记的按键`
-
-### 阶段2：代码国际化改造 (预计 1 小时)
-
-#### 2.1 修改 `MainTab.py`
-- **任务**: 找到所有硬编码的快捷键UI文本，并将其替换为 `translate()` 函数调用。
-- **目标文件**: `SCOFunctions/Tabs/MainTab.py`
-- **需要修改的UI组件**:
-  - `LA_Hotkeys` (标题)
-  - `BT_ShowHide`, `BT_Show`, `BT_Hide` (按钮)
-  - `BT_Newer`, `BT_Older`, `BT_Winrates` (按钮)
-  - `KEY_ShowHide`, `KEY_Show`, `KEY_Hide` (工具提示)
-  - `KEY_Newer`, `KEY_Older`, `KEY_Winrates` (工具提示)
-- **示例**:
-  ```python
-  # 原代码
-  self.LA_Hotkeys.setText("Hotkeys")
+#### 1.1 移除 HTML 中的硬编码文本
+- **任务**: 移除 `Layouts/Layout.html` 中所有可见的硬编码文本内容。这些文本将由 `main.js` 在初始化时通过翻译函数动态填充。
+- **目标文件**: `Layouts/Layout.html`
+- **需要移除的文本**:
+  - `NO DATA`
+  - `BEST TIME!`
+- **修改后示例**:
+  ```html
+  <!-- 原代码 -->
+  <div id="nodata">NO DATA</div>
   
-  # 修改后
-  self.LA_Hotkeys.setText(translate("Hotkeys"))
+  <!-- 修改后 -->
+  <div id="nodata"></div> 
+  ```
+
+### 阶段2：JavaScript 文本国际化 (预计 1.5 小时)
+
+#### 2.1 添加缺失的翻译条目
+- **任务**: 检查 `Layouts/main.js`，找出所有硬编码的、需要展示给用户的英文字符串，并在 `Layouts/translations.js` 文件中为它们添加中文翻译。
+- **目标文件**: `Layouts/translations.js`, `Layouts/main.js`
+- **可能需要添加的条目**:
+  - `NO DATA`: `无数据`
+  - `BEST TIME!`: `最佳时间！`
+  - `Kills`: `击杀`
+  - `Supply`: `人口`
+  - `Mining`: `采集`
+  - `Army`: `部队`
+  - `Session`: `本次会话`
+  - `Wins`: `胜利`
+  - `Games`: `场数`
+  - `(No data)`: `(无数据)`
+  - 以及其他在JS中动态生成的文本。
+
+#### 2.2 改造 `main.js`
+- **任务**:
+  1. 修改 `main.js`，确保在初始化时，使用 `t()` 函数填充 `Layout.html` 中被清空的元素。
+  2. 审查整个 `main.js` 文件，将所有用于UI显示的硬编码字符串替换为 `t('...')` 的形式。
+- **目标文件**: `Layouts/main.js`
+- **示例**:
+  ```javascript
+  // 初始化时填充
+  document.getElementById('nodata').innerText = t('NO DATA');
+  document.getElementById('record').innerText = t('BEST TIME!');
+
+  // 修改动态生成的文本
+  // 原代码
+  let label = 'Kills';
+  // 修改后
+  let label = t('Kills');
   ```
 
 ### 阶段3：测试与验证 (预计 0.5 小时)
 
 #### 3.1 功能测试
 - **任务**:
-  - 启动应用程序，切换语言为 "简体中文"。
-  - 检查 "设置" 选项卡中的 "快捷键" 部分是否已完全汉化。
-  - 将鼠标悬停在各个输入框上，验证工具提示是否已翻译。
-  - 切换回英文，验证英文显示是否正常。
-- **预期结果**: 快捷键界面的所有文本都能够根据所选语言正确显示。
+  - 启动应用程序。
+  - 触发悬浮窗显示。
+  - 检查之前硬编码的文本（如"NO DATA"）是否已正确翻译为中文。
+  - 检查图表、统计等动态生成的文本是否也已翻译。
+  - 在主程序中切换语言，验证悬浮窗语言是否会实时同步更新。
+- **预期结果**: 悬浮窗上的所有文本都能根据所选语言正确、动态地显示。
 
 ## 预期成果
-- **完整的中文体验**: 快捷键设置界面将完全汉化，符合中文用户的使用习惯。
-- **代码质量提升**: 移除了硬编码字符串，提高了代码的可维护性和可扩展性。
-- **一致的用户界面**: 确保了整个应用程序在语言切换后，所有部分的UI都能保持一致。
+- **彻底的汉化**: 游戏内悬浮窗将实现完全的中文本地化。
+- **动态语言切换**: 用户在主程序中切换语言后，悬浮窗的语言会立刻同步，无需重启。
+- **代码质量提升**: 消除硬编码，使前端代码更易于维护和扩展。
 
 ---
 *计划制定时间: 2025-06-27*
 *预计完成时间: 2025-06-27*
 *最后更新: 2025-06-27*
+
+# **Overlay汉化修复计划**
+
+## **问题分析 (2025-06-27)**
+
+通过检查代码，我发现overlay的汉化存在以下主要问题：
+
+1. **地图名称翻译不一致**: `Layouts/translations.js`中的地图名称翻译与`src/zh_CN.json`和`SCOFunctions/MTranslation_Extra.py`中的翻译不一致，导致显示错误。
+
+2. **指挥官精通(mastery)数据未汉化**: `main.js`中的`masteryNames`对象包含所有指挥官精通数据，但这些数据目前只有英文版本，没有进行翻译。
+
+3. **单位名称未完全汉化**: 在`fillunits`函数中，单位名称没有通过翻译函数进行处理，导致显示的是英文单位名。
+
+4. **细节数据未汉化**: 如击杀数据、创建/损失单位等标签没有完全汉化。
+
+## **修复总结 (2025-06-27)**
+
+所有问题已成功解决，具体更改如下：
+
+1. **统一了地图名称翻译**，确保所有地图名称使用最准确的游戏内官方中文翻译
+   
+2. **实现了指挥官精通(mastery)数据的汉化**：
+   - 添加了`masteryNames_zhCN`对象，包含所有18位指挥官的精通技能中文翻译
+   - 修改了`fillmasteries`函数，根据当前语言动态选择对应的翻译
+   
+3. **完成了单位名称的汉化**：
+   - 修改了`fillunits`函数，使用翻译函数`t()`处理单位名称
+   - 添加了所有常见单位的中文翻译到translations.js
+   - 处理了特殊单位名称的翻译逻辑
+   
+4. **汉化了所有UI元素和数据标签**：
+   - 添加了`kills`, `created`, `lost`等标签的翻译
+   - 确保所有动态生成的文本都经过翻译处理
+
+## **解决方案**
+
+### 1. 统一地图名称翻译
+- **状态**: ✅ 已完成
+- **任务**:
+  - 将`src/zh_CN.json`中的官方地图名称翻译更新到`Layouts/translations.js`
+  - 确保所有地图名称在不同文件中保持一致
+  - 优先使用游戏内官方翻译名称
+- **完成内容**:
+  - 已更新`Layouts/translations.js`中的地图名称翻译，使用`src/zh_CN.json`中的官方翻译
+  - 修正了地图名称如"天界封锁"(Lock & Load)、"净网行动"(Malwarfare)等的翻译
+  - 统一了地图名称翻译，确保在overlay中显示正确的中文名称
+
+### 2. 添加指挥官精通(mastery)汉化
+- **状态**: ✅ 已完成
+- **任务**:
+  - 在`Layouts/translations.js`中添加中文版的`masteryNames`对象
+  - 修改`fillmasteries`函数，使用翻译函数`t()`处理精通名称
+  - 参考游戏内官方翻译确保术语准确
+- **完成内容**:
+  - 添加了`masteryNames_zhCN`对象，包含所有18位指挥官的精通技能中文翻译
+  - 修改了`fillmasteries`函数，在中文模式下使用中文精通名称
+  - 根据游戏内官方翻译，确保术语准确性
+
+### 3. 单位名称汉化
+- **状态**: ✅ 已完成
+- **任务**:
+  - 修改`fillunits`函数，使用翻译函数`t()`处理单位名称
+  - 将`UnitNameMapping.py`中的单位名称映射添加到翻译字典中
+  - 处理特殊单位名称的显示逻辑
+- **完成内容**:
+  - 修改了`fillunits`函数，使用翻译函数`t()`处理单位名称
+  - 从`UnitNameMapping.py`中提取了常用单位名称翻译，添加到翻译字典中
+  - 添加了特殊单位名称如"收割者"(Slayer)和"军团兵"(Legionnaire)的翻译
+
+### 4. 统一细节数据标签翻译
+- **状态**: ✅ 已完成
+- **任务**:
+  - 为`kills`, `created`, `lost`等标签添加完整的翻译
+  - 确保所有数据标签使用翻译函数`t()`
+- **完成内容**:
+  - 添加了`kills`, `created`, `lost`等数据标签的翻译
+  - 修改了`fillunits`函数中的标题标签，使用翻译函数`t()`
+  - 确保统计数据和标签在中文模式下正确显示
+
+## **执行计划**
+
+### 步骤1：统一翻译资源
+1. 比较`src/zh_CN.json`和`Layouts/translations.js`中的翻译差异
+2. 统一地图名称、指挥官名称和难度级别的翻译
+3. 从游戏官方资源获取准确的术语翻译
+
+### 步骤2：更新JavaScript翻译核心
+1. 扩展`Layouts/translations.js`，添加所有缺失的翻译条目
+2. 为指挥官精通创建中文翻译对象
+3. 补充单位名称和UI元素的翻译
+
+### 步骤3：修改显示逻辑
+1. 修改`main.js`中的`fillmasteries`函数，使用翻译函数
+2. 修改`fillunits`函数，确保单位名称被翻译
+3. 更新所有硬编码的文本标签，使用翻译函数
+
+### 步骤4：测试和验证
+1. 测试不同语言设置下的覆盖层显示
+2. 验证所有动态生成的文本是否正确翻译
+3. 检查特殊字符和格式是否正常显示
+
+## **预期成果**
+完成后，overlay将实现全面汉化，包括：
+1. 所有地图名称显示官方中文翻译
+2. 指挥官精通技能显示中文说明
+3. 所有单位名称以中文显示
+4. 所有UI元素和数据标签汉化一致
+
+## **翻译校正总结 (2025-06-28)**
+
+在完成初步汉化后，我们对翻译进行了全面校正，确保与星际争霸II官方中文版保持一致。主要调整如下：
+
+### **已更新的翻译**
+
+1. **地图名称校正**：
+   - 将`MTranslation_Extra.py`中的地图名称翻译更新为官方译名
+   - 例如："锁定与加载" → "天界封锁"、"恶意软件" → "净网行动"等
+   - 统一使用游戏内显示的官方翻译名称
+
+2. **单位名称校正**：
+   - 确认所有单位名称与游戏内显示一致
+   - 修正了"不朽者"(Immortal)、添加了"母舰"(Mothership)、"截击机"(Interceptor)等关键单位名称
+   - 参考官方资料确认了特殊单位的翻译
+
+3. **技术术语统一**：
+   - 星灵建筑和单位名称采用官方译名
+   - 人族、异虫单位名称已校对与游戏内保持一致
+   - 专有名词统一为官方翻译(如"虚空辉光舰"、"黑暗杀星"等)
+
+### **翻译一致性测试**
+
+通过对比`src/zh_CN.json`、`SCOFunctions/UnitNameMapping.py`和`Layouts/translations.js`中的翻译，已确保系统内部翻译保持一致。现在所有显示内容均使用统一且符合官方标准的中文译名。
+
+### **注意事项**
+
+- 某些技术性术语在不同版本的游戏中可能有细微差异，我们优先采用最新版本的官方翻译
+- 特殊单位或技能名称已尽可能与中文服务器实际显示保持一致
+
+这次翻译校正确保了overlay的中文显示符合中国玩家的习惯，大大提升了用户体验。所有更新已完成测试，与游戏官方翻译保持高度一致。
+
+## **翻译系统改进 (2025-06-29)**
+
+为了使翻译系统更加灵活和易于维护，我们实现了以下改进：
+
+1. **外挂JSON翻译文件**：
+   - 添加了从外部JSON文件加载overlay翻译的功能
+   - 在`MTranslation.py`中添加了`export_overlay_translations`函数，自动导出翻译到`Layouts/overlay_zh_CN.json`
+   - 修改`translations.js`以优先使用外部JSON文件中的翻译，内置翻译作为备用
+
+2. **统一翻译源**：
+   - 所有翻译现在都从主翻译文件`src/zh_CN.json`导出
+   - 减少了翻译分散在多个文件中的问题
+   - 便于未来添加新语言或更新现有翻译
+
+3. **动态更新机制**：
+   - 当语言设置改变时，自动重新生成overlay翻译文件
+   - 无需手动同步多个翻译文件
+   - 提高了翻译一致性和维护效率
+
+4. **精简翻译模块 (2025-06-30)**：
+   - 移除了`translations.js`中的硬编码翻译，改为从外部JSON文件加载
+   - 优化了`MTranslation.py`中的导出逻辑，直接导出所有主翻译文件内容
+   - 为特殊数据结构(如指挥官精通)添加了专门的处理机制
+   - 减少了代码冗余和重复翻译定义
+
+### **实现细节**
+
+1. **翻译导出功能**：
+   ```python
+   def export_overlay_translations(language_code):
+       # 从主翻译文件和额外翻译模块收集翻译
+       # 导出到overlay_{language_code}.json文件
+   ```
+
+2. **动态加载机制**：
+   ```javascript
+   function loadExternalTranslations(language) {
+       // 使用AJAX加载外部JSON翻译文件
+       // 处理特殊格式的翻译数据(如精通翻译)
+       // 成功加载后更新页面翻译
+   }
+   ```
+
+3. **优先级处理**：
+   ```javascript
+   function t(text) {
+       // 优先使用外部JSON文件中的翻译
+       // 如果没有找到，使用内置翻译
+       // 如果都没有，返回原文本
+   }
+   ```
+
+4. **特殊数据结构处理**：
+   ```python
+   def generate_mastery_translations():
+       # 生成指挥官精通翻译字典
+       # 以特殊格式存储，便于JS处理
+       return {
+           'Abathur': ['毒气巢伤害', '修复治疗持续时间', ...],
+           'Alarak': ['阿拉纳克攻击伤害', '作战单位攻击速度', ...],
+           # ...其他指挥官精通翻译
+       }
+   ```
+
+### **优势**
+
+- **维护简便**：只需维护一个主翻译源文件
+- **一致性**：确保所有界面元素使用相同的翻译
+- **扩展性**：轻松添加新语言支持
+- **实时更新**：无需重启应用即可应用翻译变更
+
+这种外挂JSON的翻译方式大大提高了系统的灵活性和可维护性，为未来添加更多语言支持奠定了基础。

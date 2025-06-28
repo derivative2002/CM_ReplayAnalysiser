@@ -135,22 +135,22 @@ prestige_translations = {
     "Herald of the Void": "虚空先驱"
 }
 
-# 地图名称翻译
+# 地图名称翻译 - 使用游戏官方翻译
 map_translations = {
-    "Chain of Ascension": "提升之链",
-    "Dead of Night": "死亡之夜",
-    "Lock & Load": "锁定与加载",
-    "Malwarfare": "恶意软件",
-    "Miner Evacuation": "矿工撤离",
-    "Mist Opportunities": "迷雾中的机遇",
+    "Chain of Ascension": "升格之链",
+    "Dead of Night": "亡者之夜", 
+    "Lock & Load": "天界封锁",
+    "Malwarfare": "净网行动",
+    "Miner Evacuation": "营救矿工",
+    "Mist Opportunities": "机会渺茫",
     "Oblivion Express": "湮灭快车",
-    "Part and Parcel": "分裂与合并",
-    "Rifts to Korhal": "通往柯哈尔的裂隙",
-    "Scythe of Amon": "埃蒙之镰",
-    "Temple of the Past": "往昔神庙",
-    "The Vermillion Problem": "朱砂问题",
-    "Void Launch": "虚空发射",
-    "Void Thrashing": "虚空抨击",
+    "Part and Parcel": "聚铁成兵",
+    "Rifts to Korhal": "克哈裂痕",
+    "Scythe of Amon": "黑暗杀星",
+    "Temple of the Past": "往日神庙",
+    "The Vermillion Problem": "熔火危机",
+    "Void Launch": "虚空降临",
+    "Void Thrashing": "虚空撕裂",
     "Cradle of Death": "死亡摇篮",
     "Void Sliver": "虚空碎片"
 }

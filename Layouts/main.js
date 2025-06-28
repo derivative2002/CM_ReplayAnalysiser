@@ -458,6 +458,41 @@ function postGameStats(data, showing = false) {
     if (data['newReplay'] != null) {
         setTimeout(hidestats, DURATION * 1000);
     }
+
+    if (Object.keys(data).length > 0) {
+        document.getElementById('nodata').style.display = 'none';
+        document.getElementById('stats').style.display = 'block';
+        document.getElementById('morestats').style.display = 'block';
+        document.getElementById('killbar').style.display = 'flex';
+
+        document.getElementById('name1').textContent = data.names[0];
+        document.getElementById('name2').textContent = data.names[1];
+        document.getElementById('map').textContent = t(data.map);
+
+        document.getElementById('com1').style.backgroundImage = `url('Commanders/${data.commanders[0]}.png')`;
+        document.getElementById('com2').style.backgroundImage = `url('Commanders/${data.commanders[1]}.png')`;
+
+        document.getElementById('apm1').textContent = data.apms[0];
+        document.getElementById('apm2').textContent = data.apms[1];
+
+        if (data.record) {
+            document.getElementById('record').textContent = t('BEST TIME!');
+            document.getElementById('record').style.display = 'block';
+        }
+        else {
+            document.getElementById('record').style.display = 'none';
+        }
+
+        document.getElementById('brutal').textContent = `${t('Difficulty')}: ${t(data.difficulty)}`;
+    }
+    else {
+        document.getElementById('nodata').textContent = t('NO DATA');
+        document.getElementById('nodata').style.display = 'block';
+        document.getElementById('stats').style.display = 'none';
+        document.getElementById('morestats').style.display = 'none';
+        document.getElementById('killbar').style.display = 'none';
+        document.getElementById('charts').style.display = 'none';
+    }
 }
 
 
@@ -523,7 +558,14 @@ function fillmasteries(el, dat, commander) {
         if (dat[i] < 10) spacer = '<span class="singlemastery">';
         if (dat[i] == 0) spacer = '<span class="nomastery">';
         else any_mastery = true;
-        text += spacer + dat[i] + ' ' + masteryNames[commander][i] + '<br></span>';
+        
+        // 根据当前语言选择精通名称
+        let masteryText = masteryNames[commander][i];
+        if (currentLanguage === 'zh_CN' && masteryNames_zhCN && masteryNames_zhCN[commander]) {
+            masteryText = masteryNames_zhCN[commander][i];
+        }
+        
+        text += spacer + dat[i] + ' ' + masteryText + '<br></span>';
     }
     if (any_mastery) document.getElementById(el).style.display = 'block';
     else document.getElementById(el).style.display = 'none';
@@ -555,7 +597,7 @@ function fillicons(el, data) {
 
 
 function fillunits(el, dat, commander, color, total_kills = null) {
-    let text = '<span class="unitkills">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;kills</span><span class="unitcreated header">created</span><span class="unitdied header">lost</span><br>';
+    let text = '<span class="unitkills">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;' + t('kills') + '</span><span class="unitcreated header">' + t('created') + '</span><span class="unitdied header">' + t('lost') + '</span><br>';
     let percent = 0;
     let spacer = '';
     let idx = 0;
@@ -568,6 +610,9 @@ function fillunits(el, dat, commander, color, total_kills = null) {
         // Switch few unit names
         if ((key == 'Stalker') && (commander == 'Alarak')) key = 'Slayer';
         if ((key == 'Sentinel') && (commander == 'Fenix')) key = 'Legionnaire';
+        
+        // 翻译单位名称
+        let unitName = t(key);
 
         spacer = '';
         percent = Math.round(100 * value[3]);
@@ -578,10 +623,41 @@ function fillunits(el, dat, commander, color, total_kills = null) {
             if (total_kills != null && total_kills > 0) bg_width = 50 * value[2] / total_kills;
             else bg_width = 35 * percent / 100;
 
-            text += '<div class="unitkillbg" style="width: ' + bg_width + 'vh; background-color: ' + color + '"></div><div class="unitline">' + key + ' <span class="unitkills ' + spacer + '">' + percent + '% | ' + value[2] + '</span>  <span class="unitcreated">' + value[0] + '</span>  <span class="unitdied">' + value[1] + '</span><div>'
+            text += '<div class="unitkillbg" style="width: ' + bg_width + 'vh; background-color: ' + color + '"></div><div class="unitline">' + unitName + ' <span class="unitkills ' + spacer + '">' + percent + '% | ' + value[2] + '</span>  <span class="unitcreated">' + value[0] + '</span>  <span class="unitdied">' + value[1] + '</span><div>'
         };
     }
 
     if (idx == 0) text = '<span class="unitkills"></span>';
     document.getElementById(el).innerHTML = text;
+}
+
+function setSessionStats(data) {
+    if (data && data.session_games > 0) {
+        let text = `${t('Session')}: ${data.session_wins} ${t('Wins')} / ${data.session_games} ${t('Games')}`;
+        document.getElementById('session').textContent = text;
+        document.getElementById('session').style.display = 'block';
+    } else {
+        document.getElementById('session').style.display = 'none';
+    }
+}
+
+function showPlayerStats(data) {
+    let text = '';
+    if (data && Object.keys(data).length > 0) {
+        if (data.total_games > 0) {
+            text = `${t('You played')} <strong>${data.total_games}</strong> ${t('games with')} <strong>${data.ally_name}</strong> (${data.winrate}% ${t('winrate')})`;
+            if (data.last_played) {
+                text += `<br>${t('Last game played together:')} <strong>${data.last_played}</strong>`;
+            }
+        } else {
+            text = `${t('No games played with')} <strong>${data.ally_name}</strong>`;
+        }
+        if (data.note) {
+            text += `<br>${t('Player note:')} <strong>${data.note}</strong>`;
+        }
+    } else {
+        text = t('(No data)');
+    }
+
+    document.getElementById('playerstats').innerHTML = text;
 }
